@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
+</head>
+<body style="margin:0;padding:0;background:#f0faf5;font-family:'Montserrat',Arial,sans-serif;">
+<div style="max-width:580px;margin:0 auto;padding:40px 20px;">
+
+  <!-- Header logo centré -->
+  <div style="text-align:center;margin-bottom:32px;">
+    <img src="https://raw.githubusercontent.com/oneymaar/simulateur-achat-vente/main/logo-dans-le-12.png" alt="Dans le 12" style="height:100px;width:auto;display:inline-block;margin-bottom:12px;"/>
+    <p style="color:#4a7a5a;font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;margin:0;">simulateur.dansle12.fr</p>
+  </div>
+
+  <!-- Titre -->
+  <div style="text-align:center;margin-bottom:28px;">
+    <h1 style="color:#1a2e1f;font-size:26px;font-weight:400;margin:0 0 6px;line-height:1.3;">
+      Votre analyse achat-vente<br/><strong style="font-weight:600;">est prête.</strong>
+    </h1>
+  </div>
+
+  <!-- Badge profil -->
+  <div style="text-align:center;margin-bottom:28px;">
+    <span style="display:inline-block;background:#9DFCC7;border-radius:20px;padding:7px 18px;color:#007a34;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">
+      Profil détecté · {{profil_label}}
+    </span>
+  </div>
+
+  <!-- Carte message -->
+  <div style="background:#ffffff;border-radius:16px;padding:32px;margin-bottom:24px;border:1px solid #c5eeda;">
+    <p style="color:#2a3d2e;font-size:15px;font-weight:400;line-height:1.75;margin:0 0 18px;">Bonjour,</p>
+    <p style="color:#2a3d2e;font-size:15px;font-weight:400;line-height:1.75;margin:0 0 18px;">
+      Votre recommandation personnalisée est prête. Elle a été générée à partir de vos <strong style="font-weight:600;">16 réponses</strong> et analyse votre situation sous l'angle financier, logistique et psychologique.
+    </p>
+    <p style="color:#2a3d2e;font-size:15px;font-weight:400;line-height:1.75;margin:0;">
+      Cliquez sur le bouton ci-dessous pour y accéder.<br/>
+      <span style="color:#6a9a78;font-size:13px;">Ce lien est valable <strong style="font-weight:600;">48 heures</strong>.</span>
+    </p>
+  </div>
+
+  <!-- CTA principal -->
+  <div style="text-align:center;margin-bottom:32px;">
+    <a href="{{verify_link}}"
+      style="display:inline-block;background:#00A948;color:#ffffff;padding:17px 44px;border-radius:10px;text-decoration:none;font-weight:600;font-family:'Montserrat',Arial,sans-serif;font-size:15px;letter-spacing:0.03em;">
+      Accéder à mon analyse →
+    </a>
+    <p style="color:#8aaa98;font-size:11px;margin:12px 0 0;font-weight:400;">
+      Lien non cliquable ? Copiez-le dans votre navigateur :<br/>
+      <span style="color:#6a8a78;word-break:break-all;font-size:10px;">{{verify_link}}</span>
+    </p>
+  </div>
+
+  <!-- Séparateur -->
+  <div style="border-top:1px solid #c5eeda;margin:28px 0;"></div>
+
+  <!-- Footer -->
+  <div style="text-align:center;">
+    <p style="color:#6a9a78;font-size:13px;font-weight:400;line-height:1.7;margin:0 0 18px;">
+      Une question ? Répondez à cet email<br/>ou contactez-moi directement sur WhatsApp.
+    </p>
+    <a href="https://wa.me/33670744935?text=Bonjour%20Olivier%2C%20j%27ai%20reçu%20mon%20analyse%20achat-vente"
+      style="display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#ffffff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:600;font-family:'Montserrat',Arial,sans-serif;font-size:13px;">
+      <img src="https://raw.githubusercontent.com/oneymaar/simulateur-achat-vente/main/logo-whatsapp.png" alt="WhatsApp" style="width:20px;height:20px;border-radius:4px;vertical-align:middle;"/>
+      Contacter Olivier sur WhatsApp
+    </a>
+    <div style="margin-top:24px;">
+      <img src="https://raw.githubusercontent.com/oneymaar/simulateur-achat-vente/main/logo-dans-le-12.png" alt="Dans le 12" style="height:52px;width:auto;display:inline-block;margin-bottom:8px;"/>
+      <p style="color:#aac8b8;font-size:11px;font-weight:400;margin:0;">
+        Olivier Ménart · Agent immobilier · Paris 12ème<br/>
+        <a href="https://simulateur.dansle12.fr" style="color:#00A948;text-decoration:none;">simulateur.dansle12.fr</a>
+      </p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
