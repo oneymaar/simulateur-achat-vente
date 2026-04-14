@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acheter puis vendre — ou l'inverse ? | Dans le 12</title>
+  <meta name="description" content="Simulateur stratégique pour acquéreurs-vendeurs dans le 12ème arrondissement. Analysez votre situation en 3 minutes." />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0f0e0c; }
+    #root { min-height: 100vh; }
+    button { cursor: pointer; }
+    input:focus { outline: none; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #1a1814; }
+    ::-webkit-scrollbar-thumb { background: #2e2a22; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef } = React;
+
+    const C = {
+      bg: "#0f0e0c", surface: "#1a1814", surfaceLight: "#242018",
+      border: "#2e2a22", accent: "#e8a94d", accentLight: "#f0c070",
+      accentDim: "#8a6030", text: "#f0ebe0", textMuted: "#8a8070",
+      textDim: "#5a5448", danger: "#c45a3a", success: "#6aaa78",
+    };
+
+    const WEBHOOK_URL = "https://hook.eu1.make.com/1h1vbt74zo2hu8hgjxjhcdia7a309omo";
+    const WHATSAPP_URL = "https://wa.me/33600000000?text=Bonjour%20Olivier%2C%20j%27ai%20utilisé%20votre%20simulateur%20achat-vente%20et%20j%27aimerais%20en%20discuter.";
+
+    const questions = [
+      { id:"intuition", block:"intro", question:"Intuitivement, quelle stratégie vous semble la plus adaptée ?", sub:"Pas de bonne ou mauvaise réponse. Votre point de départ nous intéresse.", options:[
+        {value:"sell_first",label:"Vendre d'abord, puis acheter",icon:"🏠→🔑"},
+        {value:"buy_first",label:"Acheter d'abord, puis vendre",icon:"🔑→🏠"},
+        {value:"unsure",label:"Je ne sais vraiment pas",icon:"⚖️"},
+      ]},
+      { id:"bien_type", block:"vente", question:"Quel type de bien souhaitez-vous vendre ?", options:[
+        {value:"studio_1p",label:"Studio / T1",icon:"▪️"},
+        {value:"2p_3p",label:"T2 / T3",icon:"▫️"},
+        {value:"4p_plus",label:"T4 et plus",icon:"⬜"},
+        {value:"maison",label:"Maison",icon:"🏡"},
+      ]},
+      { id:"bien_etat", block:"vente", question:"Dans quel état se trouve votre bien ?", options:[
+        {value:"refait",label:"Refait à neuf / très bon état",icon:"✨"},
+        {value:"bon",label:"Bon état, quelques petits travaux",icon:"👌"},
+        {value:"travaux",label:"Travaux importants à prévoir",icon:"🔨"},
+      ]},
+      { id:"bien_dpe", block:"vente", question:"Quel est le DPE de votre bien ?", sub:"Le DPE impacte fortement la liquidité sur le marché actuel.", options:[
+        {value:"abc",label:"A, B ou C",icon:"🟢"},
+        {value:"d",label:"D",icon:"🟡"},
+        {value:"ef",label:"E ou F",icon:"🟠"},
+        {value:"g",label:"G (passoire thermique)",icon:"🔴"},
+        {value:"unknown",label:"Je ne sais pas",icon:"❓"},
+      ]},
+      { id:"bien_prix", block:"vente", question:"Par rapport au marché actuel du 12ème, votre prix de vente envisagé est :", sub:"Soyez honnête — c'est là que se jouent beaucoup d'erreurs stratégiques.", options:[
+        {value:"sous_marche",label:"En dessous du marché — je veux vendre vite",icon:"📉"},
+        {value:"marche",label:"Dans le marché — prix cohérent",icon:"➡️"},
+        {value:"dessus",label:"Au-dessus — mon bien le vaut",icon:"📈"},
+        {value:"unknown",label:"Je n'ai pas encore d'estimation précise",icon:"❓"},
+      ]},
+      { id:"estimation", block:"vente", question:"Avez-vous déjà fait estimer votre bien par un professionnel ?", sub:"Une estimation récente est la base de toute stratégie solide.", options:[
+        {value:"oui_recente",label:"Oui — estimation récente (moins de 6 mois)",icon:"✅"},
+        {value:"oui_ancienne",label:"Oui — mais il y a plus d'un an",icon:"🕐"},
+        {value:"non",label:"Non, pas encore",icon:"❌"},
+      ]},
+      { id:"avancement_vente", block:"vente", question:"Où en êtes-vous côté vente ?", options:[
+        {value:"en_vente_agent",label:"Déjà en vente avec un agent",icon:"🏷️"},
+        {value:"en_vente_pap",label:"Déjà en vente en PAP",icon:"📋"},
+        {value:"pas_encore",label:"Pas encore mis en vente",icon:"⏳"},
+        {value:"reflexion",label:"Je réfléchis encore",icon:"💭"},
+      ]},
+      { id:"credit_en_cours", block:"finance", question:"Avez-vous un crédit immobilier en cours sur ce bien ?", options:[
+        {value:"oui_important",label:"Oui — capital restant dû important (>60% de la valeur)",icon:"💸"},
+        {value:"oui_faible",label:"Oui — mais capital restant dû faible (<40% de la valeur)",icon:"💰"},
+        {value:"non",label:"Non — bien remboursé ou cash",icon:"✅"},
+      ]},
+      { id:"apport_dispo", block:"finance", question:"Disposez-vous d'un apport disponible indépendamment de votre vente ?", sub:"Épargne, livrets, investissements liquidables...", options:[
+        {value:"non",label:"Non — tout est dans le bien actuel",icon:"🔒"},
+        {value:"partiel",label:"Un peu — quelques dizaines de milliers d'€",icon:"🏦"},
+        {value:"oui",label:"Oui — apport significatif disponible",icon:"💎"},
+      ]},
+      { id:"relais", block:"finance", question:"Votre banque vous a-t-elle déjà parlé d'un prêt relais ou avez-vous étudié cette option ?", options:[
+        {value:"oui_ok",label:"Oui — c'est envisageable pour moi",icon:"✅"},
+        {value:"oui_nok",label:"Oui — mais trop coûteux / pas adapté",icon:"❌"},
+        {value:"non",label:"Pas encore exploré",icon:"❓"},
+      ]},
+      { id:"hebergement", block:"finance", question:"En cas de décalage entre vente et achat, avez-vous une solution de repli ?", sub:"Louer entre les deux est plus difficile qu'il n'y paraît dans Paris actuellement.", options:[
+        {value:"famille",label:"Oui — famille, résidence secondaire...",icon:"🏡"},
+        {value:"location",label:"Je louerais quelque chose temporairement",icon:"🔑"},
+        {value:"non",label:"Non — ce serait très compliqué",icon:"😰"},
+      ]},
+      { id:"projet_achat", block:"achat", question:"Où en êtes-vous dans votre projet d'achat ?", options:[
+        {value:"trouve",label:"J'ai déjà un bien en vue / coup de cœur identifié",icon:"❤️"},
+        {value:"recherche_active",label:"Je cherche activement depuis plusieurs mois",icon:"🔍"},
+        {value:"debut",label:"Je commence à peine ma recherche",icon:"🌱"},
+      ]},
+      { id:"criteres", block:"achat", question:"Comment qualifieriez-vous vos critères d'achat ?", options:[
+        {value:"flexibles",label:"Assez flexibles — plusieurs biens pourraient convenir",icon:"🔓"},
+        {value:"precis",label:"Précis — mais je peux faire quelques concessions",icon:"🎯"},
+        {value:"tres_precis",label:"Très précis — je sais exactement ce que je veux",icon:"💎"},
+      ]},
+      { id:"timing", block:"achat", question:"Quel est votre horizon de projet idéal ?", options:[
+        {value:"urgent",label:"Le plus vite possible — sous 6 mois",icon:"⚡"},
+        {value:"normal",label:"Dans l'année — sans urgence absolue",icon:"📅"},
+        {value:"flexible",label:"Je suis flexible sur le timing",icon:"🌊"},
+      ]},
+      { id:"stress", block:"psycho", question:"Face à l'incertitude financière, vous êtes plutôt :", options:[
+        {value:"stresse",label:"Stressé(e) — je préfère la sécurité avant tout",icon:"😰"},
+        {value:"neutre",label:"Neutre — j'accepte une part de risque calculé",icon:"😐"},
+        {value:"serein",label:"Serein(e) — je sais gérer l'incertitude",icon:"😌"},
+      ]},
+      { id:"priorite", block:"psycho", question:"Dans cette opération, votre priorité absolue c'est :", options:[
+        {value:"securite",label:"Ne pas prendre de risque financier",icon:"🛡️"},
+        {value:"fluidite",label:"Un parcours fluide, sans galère logistique",icon:"🌊"},
+        {value:"optimal",label:"Optimiser au maximum le résultat financier",icon:"📊"},
+      ]},
+    ];
+
+    const blockLabels = { intro:"Point de départ", vente:"Votre bien", finance:"Finances", achat:"Projet d'achat", psycho:"Votre profil" };
+    const blockOrder = ["intro","vente","finance","achat","psycho"];
+
+    const labelMap = {
+      intuition:{sell_first:"Vendre d'abord",buy_first:"Acheter d'abord",unsure:"Indécis(e)"},
+      bien_type:{studio_1p:"Studio/T1","2p_3p":"T2/T3","4p_plus":"T4+",maison:"Maison"},
+      bien_etat:{refait:"Refait à neuf",bon:"Bon état",travaux:"Travaux importants"},
+      bien_dpe:{abc:"A-B-C",d:"D",ef:"E-F",g:"G",unknown:"Inconnu"},
+      bien_prix:{sous_marche:"Sous le marché",marche:"Dans le marché",dessus:"Au-dessus",unknown:"Inconnu"},
+      estimation:{oui_recente:"Oui < 6 mois",oui_ancienne:"Oui > 1 an",non:"Non"},
+      avancement_vente:{en_vente_agent:"En vente (agent)",en_vente_pap:"En vente (PAP)",pas_encore:"Pas encore",reflexion:"En réflexion"},
+      credit_en_cours:{oui_important:"Oui >60%",oui_faible:"Oui <40%",non:"Non"},
+      apport_dispo:{non:"Non",partiel:"Partiel",oui:"Oui"},
+      relais:{oui_ok:"Oui envisageable",oui_nok:"Non adapté",non:"Pas exploré"},
+      hebergement:{famille:"Famille/résidence",location:"Location temporaire",non:"Aucune solution"},
+      projet_achat:{trouve:"Bien identifié",recherche_active:"Recherche active",debut:"Début de recherche"},
+      criteres:{flexibles:"Flexibles",precis:"Précis",tres_precis:"Très précis"},
+      timing:{urgent:"< 6 mois",normal:"Dans l'année",flexible:"Flexible"},
+      stress:{stresse:"Stressé(e)",neutre:"Neutre",serein:"Serein(e)"},
+      priorite:{securite:"Sécurité financière",fluidite:"Fluidité",optimal:"Optimisation"},
+    };
+    const humanize = (key, val) => labelMap[key]?.[val] || val || "";
+
+    function scoreProfile(answers) {
+      let v = 0, a = 0, c = 0;
+      if (answers.bien_etat === "refait") v += 2;
+      if (answers.bien_etat === "travaux") { a += 1; c += 1; }
+      if (answers.bien_dpe === "abc") v += 2;
+      if (answers.bien_dpe === "ef") { a += 1; c += 2; }
+      if (answers.bien_dpe === "g") { a += 2; c += 3; }
+      if (answers.bien_prix === "sous_marche") a += 2;
+      if (answers.bien_prix === "dessus") { v += 1; c += 2; }
+      if (answers.credit_en_cours === "oui_important") { v += 3; c += 1; }
+      if (answers.credit_en_cours === "non") a += 2;
+      if (answers.apport_dispo === "oui") a += 3;
+      if (answers.apport_dispo === "non") v += 2;
+      if (answers.relais === "oui_ok") a += 2;
+      if (answers.hebergement === "famille") a += 2;
+      if (answers.hebergement === "non") { a += 2; c += 1; }
+      if (answers.projet_achat === "trouve") { a += 3; c += 1; }
+      if (answers.projet_achat === "debut") v += 2;
+      if (answers.criteres === "tres_precis") { a += 1; c += 2; }
+      if (answers.criteres === "flexibles") v += 1;
+      if (answers.timing === "urgent") { v += 1; c += 2; }
+      if (answers.stress === "stresse") v += 2;
+      if (answers.stress === "serein") a += 1;
+      if (answers.priorite === "securite") v += 2;
+      if (answers.priorite === "optimal") a += 1;
+
+      const total = v + a;
+      const ratio = total > 0 ? v / total : 0.5;
+
+      let profile;
+      if (c >= 6) profile = "E";
+      else if (ratio > 0.65) profile = answers.intuition === "buy_first" ? "B_challenge" : "B";
+      else if (ratio < 0.30) profile = answers.intuition === "sell_first" ? "C_challenge" : "C";
+      else profile = "D";
+
+      const isUrgent = answers.timing === "urgent";
+      const noEstimation = answers.estimation === "non" || answers.estimation === "oui_ancienne";
+      const notYetSelling = answers.avancement_vente === "pas_encore" || answers.avancement_vente === "reflexion";
+      const sellingPAP = answers.avancement_vente === "en_vente_pap";
+      const base = profile.replace("_challenge","");
+
+      let qualification = "🟡 Tiède";
+      if (isUrgent && noEstimation && notYetSelling) qualification = "🔥 Très chaud — pressé, pas d'estimation, pas encore en vente";
+      else if (isUrgent && notYetSelling) qualification = "🔥 Chaud — pressé, pas encore en vente";
+      else if (noEstimation && (base === "B")) qualification = "🔥 Chaud — vendeur prioritaire sans estimation";
+      else if (sellingPAP) qualification = "🟠 Intéressant — en PAP, potentiel de reprise mandat";
+      else if (answers.avancement_vente === "en_vente_agent") qualification = "🟡 Tiède — déjà accompagné";
+      else if (answers.projet_achat === "trouve") qualification = "🟠 Intéressant — bien achat identifié, décision imminente";
+
+      const profileLabels = {B:"Vendeur en priorité",B_challenge:"Vendeur en priorité",C:"Acheteur en priorité",C_challenge:"Acheteur en priorité",D:"Opération simultanée",E:"Situation complexe"};
+
+      return { profile, vendreScore: v, acheterScore: a, complexite: c, ratio,
+        intuition: answers.intuition, qualification, noEstimation, sellingPAP,
+        profil_label: profileLabels[profile] || profile };
+    }
+
+    function generateRecommendation(answers, sc) {
+      const { profile, intuition, noEstimation, sellingPAP } = sc;
+      const base = profile.replace("_challenge","");
+      const challenged = profile.includes("_challenge");
+      const intuitionLabel = intuition === "sell_first" ? "vendre d'abord" : intuition === "buy_first" ? "acheter d'abord" : null;
+
+      let accroche = "";
+      if (!intuitionLabel) accroche = "Vous hésitiez sur la stratégie à adopter — c'est souvent le signe d'une situation plus nuancée qu'il n'y paraît. Votre analyse le confirme.";
+      else if (!challenged) accroche = `Votre intuition était la bonne. L'analyse de vos ${Object.keys(answers).length} critères confirme que la stratégie "${intuitionLabel}" est bien adaptée à votre profil — mais attention, l'exécution est tout.`;
+      else {
+        const wrong = intuition === "sell_first" ? "vendre d'abord" : "acheter d'abord";
+        const right = intuition === "sell_first" ? "acheter en priorité" : "vendre en priorité";
+        accroche = `Votre réflexe de "${wrong}" est compréhensible — c'est celui de la majorité. Mais à l'analyse de votre situation concrète, la stratégie la plus adaptée est plutôt d'${right}. Voici pourquoi.`;
+      }
+
+      let reco = "";
+      if (base === "B") reco = "Votre profil indique clairement qu'il faut vendre avant d'acheter. Votre montage financier dépend du produit de cession, et tenter d'acheter d'abord vous exposerait à un risque de portage que votre situation ne permet pas d'absorber sereinement.";
+      else if (base === "C") reco = "Votre profil vous donne une vraie marge de manœuvre pour acheter d'abord si la bonne opportunité se présente. Votre capacité financière autonome et votre flexibilité logistique vous le permettent — à condition de cadrer précisément votre stratégie de vente en parallèle.";
+      else if (base === "D") reco = "Votre situation est équilibrée : ni clairement en faveur de vendre d'abord, ni d'acheter d'abord. C'est le profil qui bénéficie le plus d'une opération simultanée bien coordonnée — avec une synchronisation précise des deux transactions.";
+      else reco = "Votre situation cumule plusieurs facteurs de complexité qui rendent une recommandation standardisée insuffisante. Plusieurs scénarios sont envisageables selon des variables que seul un entretien approfondi permettra de peser correctement.";
+
+      const args = [];
+      if (answers.bien_dpe === "g") args.push("Votre DPE G est aujourd'hui un frein majeur à la vente : les acheteurs exigent des décotes importantes et les délais s'allongent. C'est un facteur déterminant dans votre calendrier.");
+      else if (answers.bien_dpe === "ef") args.push("Avec un DPE E ou F, votre bien entre dans la catégorie des passoires thermiques. Le marché parisien actuel pénalise ces biens sur le prix et sur le délai — anticipez une négociation.");
+      else if (answers.bien_dpe === "abc") args.push("Votre DPE favorable (A-C) est un vrai atout de liquidité sur le marché du 12ème en ce moment. Les biens bien notés se vendent plus vite et se négocient moins.");
+      if (answers.bien_prix === "dessus") args.push("Votre prix envisagé au-dessus du marché est le risque numéro un d'enlisement. Dans un marché en ajustement comme celui du 12ème, surestimer son bien coûte des semaines — parfois des mois.");
+      else if (answers.bien_prix === "sous_marche") args.push("Votre approche prix sous le marché est une force : elle génère de la concurrence et raccourcit le délai de vente, ce qui sécurise l'ensemble du projet.");
+      if (answers.credit_en_cours === "oui_important") args.push("Avec un capital restant dû important, le produit de votre vente est indispensable pour boucler votre financement. Toute stratégie d'achat avant vente vous expose à un prêt relais dont le coût peut dépasser 15 000€ sur 12 mois.");
+      if (answers.apport_dispo === "oui") args.push("Votre apport disponible hors vente vous donne une autonomie réelle. C'est ce qui rend un achat préalable envisageable sans mettre en danger votre équilibre financier.");
+      if (answers.hebergement === "non") args.push("L'absence de solution de repli logistique est une contrainte forte : dans Paris, trouver une location meublée de transition est difficile et coûteux. Ce facteur plaide pour séquencer l'opération avec soin.");
+      if (answers.projet_achat === "trouve") args.push("Vous avez déjà un bien en vue — c'est une donnée qui change tout. L'opportunité identifiée crée une pression temporelle réelle sur votre côté vendeur.");
+      if (answers.criteres === "tres_precis") args.push("Vos critères d'achat très précis signifient que trouver le bon bien prendra du temps. Attendre d'avoir vendu pour chercher risque de vous exposer à une période de flottement inconfortable.");
+      if (answers.stress === "stresse" && base === "C") args.push("Votre profil prudent mérite d'être pris en compte : si vous achetez d'abord, assurez-vous d'avoir un plan B clair en cas de délai de vente plus long que prévu.");
+
+      let estimationWarn = noEstimation ? "\n\nÉtape préalable indispensable : votre bien n'a pas encore été estimé par un professionnel — ou cette estimation est trop ancienne pour refléter le marché actuel. Sans prix de vente réaliste, toute stratégie repose sur du sable. C'est la première chose à faire, avant même de prendre d'autres décisions." : "";
+      let papWarn = sellingPAP ? "\n\nNote sur votre mise en vente : vous gérez actuellement votre vente en direct. Dans un marché parisien en mouvement comme le 12ème, cela peut allonger les délais et complexifier les négociations — deux facteurs qui peuvent peser sur l'ensemble de votre projet achat-vente." : "";
+      const courtier = "\n\nUn point souvent négligé : contactez un courtier en financement avant de vous engager sur quoi que ce soit. Connaître précisément votre capacité d'emprunt — avec ou sans le produit de votre vente — est indispensable pour négocier sereinement des deux côtés.";
+
+      let actions = "";
+      if (base === "B") actions = "1. Faites réaliser une estimation sérieuse de votre bien dans les 15 prochains jours — pas une estimation en ligne, une vraie visite avec un agent du secteur. 2. Définissez votre prix de mise en vente avec une marge de négociation intégrée dès le départ — pas en partant haut pour baisser ensuite. 3. Préparez vos diagnostics immobiliers maintenant — DPE, amiante, électricité — pour ne pas perdre de temps une fois le mandat signé.";
+      else if (base === "C") actions = "1. Faites simuler votre capacité d'emprunt maximale sans le produit de vente — c'est votre vrai plafond d'achat autonome. 2. Préparez votre dossier de vente en parallèle : estimation, diagnostics, photos — pour pouvoir mettre sur le marché rapidement dès que vous aurez signé un compromis d'achat. 3. Identifiez précisément le délai entre votre signature achat et votre besoin de fonds — c'est la fenêtre dans laquelle votre vente doit se conclure.";
+      else if (base === "D") actions = "1. Posez une date cible de déménagement et travaillez à rebours : c'est le seul moyen de synchroniser les deux transactions. 2. Mandatez un agent capable de gérer les deux côtés — la coordination est la clé d'une opération simultanée réussie. 3. Prévoyez une clause de condition suspensive croisée si possible — cela sécurise les deux transactions l'une par rapport à l'autre.";
+      else actions = "1. Listez par ordre de priorité vos contraintes non-négociables (financières, logistiques, timing). 2. Faites estimer votre bien avant tout autre démarche — c'est la donnée qui manque pour trancher. 3. Consultez un expert qui connaît le marché local pour arbitrer entre les scénarios possibles.";
+
+      const invite = "Cette analyse est un premier cadrage basé sur vos déclarations. Une conversation de 20 minutes avec un expert du terrain — qui connaît les délais réels de vente dans le 12ème, les mécanismes de financement et les pièges à éviter — peut transformer radicalement votre approche. C'est exactement ce que je propose.";
+
+      return `${accroche}\n\n${reco}\n\n${args.slice(0,3).join(" ")}${estimationWarn}${papWarn}${courtier}\n\n${actions}\n\n${invite}`;
+    }
+
+    function getProfileLabel(profile) {
+      return {
+        B:{text:"Vendeur en priorité",color:C.accent},
+        B_challenge:{text:"Vendeur en priorité",color:C.accent},
+        C:{text:"Acheteur en priorité",color:"#6aaa78"},
+        C_challenge:{text:"Acheteur en priorité",color:"#6aaa78"},
+        D:{text:"Opération simultanée",color:"#7ab8d4"},
+        E:{text:"Situation complexe",color:C.danger},
+      }[profile] || {text:"",color:C.accent};
+    }
+
+    function App() {
+      const [step, setStep] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [email, setEmail] = useState("");
+      const [emailValid, setEmailValid] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [scoring, setScoring] = useState(null);
+      const [animating, setAnimating] = useState(false);
+      const inputRef = useRef(null);
+
+      const total = questions.length;
+      const currentQ = step >= 1 && step <= total ? questions[step-1] : null;
+      const progress = step >= 1 && step <= total ? ((step-1)/total)*100 : 0;
+      const currentBlock = currentQ ? currentQ.block : null;
+      const blockProgress = blockOrder.indexOf(currentBlock);
+
+      const validateEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+      const handleAnswer = value => {
+        if (animating) return;
+        setAnimating(true);
+        setAnswers(prev => ({...prev, [currentQ.id]: value}));
+        setTimeout(() => { setStep(s => s+1); setAnimating(false); }, 300);
+      };
+
+      const handleSubmit = async () => {
+        if (!emailValid) return;
+        setLoading(true);
+        const sc = scoreProfile(answers);
+        setScoring(sc);
+        const rec = generateRecommendation(answers, sc);
+        const t = sc.vendreScore + sc.acheterScore;
+        try {
+          await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+              email,
+              intuition: humanize("intuition", answers.intuition),
+              bien_type: humanize("bien_type", answers.bien_type),
+              bien_etat: humanize("bien_etat", answers.bien_etat),
+              bien_dpe: humanize("bien_dpe", answers.bien_dpe),
+              bien_prix: humanize("bien_prix", answers.bien_prix),
+              estimation: humanize("estimation", answers.estimation),
+              avancement_vente: humanize("avancement_vente", answers.avancement_vente),
+              credit_en_cours: humanize("credit_en_cours", answers.credit_en_cours),
+              apport_dispo: humanize("apport_dispo", answers.apport_dispo),
+              relais: humanize("relais", answers.relais),
+              hebergement: humanize("hebergement", answers.hebergement),
+              projet_achat: humanize("projet_achat", answers.projet_achat),
+              criteres: humanize("criteres", answers.criteres),
+              timing: humanize("timing", answers.timing),
+              stress: humanize("stress", answers.stress),
+              priorite: humanize("priorite", answers.priorite),
+              profil: sc.profile,
+              profil_label: sc.profil_label,
+              score_vendre: Math.round((sc.vendreScore/(t||1))*100),
+              score_acheter: Math.round((sc.acheterScore/(t||1))*100),
+              complexite: sc.complexite,
+              intuition_challengee: sc.profile.includes("challenge") ? "Oui" : "Non",
+              qualification: sc.qualification,
+              recommandation: rec,
+            })
+          });
+        } catch(e) {}
+        setLoading(false);
+        setStep(total + 2);
+      };
+
+      const reset = () => { setStep(0); setAnswers({}); setEmail(""); setScoring(null); };
+
+      // LANDING
+      if (step === 0) return (
+        <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"Georgia,serif"}}>
+          <div style={{maxWidth:560,width:"100%"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.accent}18`,border:`1px solid ${C.accentDim}`,borderRadius:20,padding:"6px 14px",marginBottom:32}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:C.accent}}/>
+              <span style={{color:C.accent,fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"monospace"}}>Outil exclusif · Paris 12ème</span>
+            </div>
+            <h1 style={{color:C.text,fontSize:"clamp(28px,5vw,44px)",fontWeight:400,lineHeight:1.15,margin:"0 0 20px",letterSpacing:"-0.02em"}}>
+              Acheter puis vendre —<br/><span style={{color:C.accent}}>ou l'inverse ?</span>
+            </h1>
+            <p style={{color:C.textMuted,fontSize:16,lineHeight:1.7,margin:"0 0 40px"}}>
+              La plupart des acquéreurs-vendeurs pensent connaître la bonne réponse. En réalité, 6 sur 10 sous-estiment au moins un risque majeur dans leur situation.
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:40}}>
+              {[["⚡","3 minutes","16 questions sur votre situation réelle"],["🧠","Analyse personnalisée","Croisant finance, marché et psychologie"],["📬","Recommandation par email","Avec les actions prioritaires à mener dès maintenant"]].map(([icon,title,desc]) => (
+                <div key={title} style={{display:"flex",alignItems:"flex-start",gap:14,padding:"14px 18px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10}}>
+                  <span style={{fontSize:18}}>{icon}</span>
+                  <div>
+                    <div style={{color:C.text,fontSize:14,fontWeight:600,fontFamily:"monospace",letterSpacing:"0.02em"}}>{title}</div>
+                    <div style={{color:C.textMuted,fontSize:13,marginTop:2,fontFamily:"sans-serif"}}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setStep(1)} style={{width:"100%",padding:"18px 32px",background:C.accent,color:"#0f0e0c",border:"none",borderRadius:10,fontSize:16,fontWeight:700,cursor:"pointer",letterSpacing:"0.02em",fontFamily:"monospace"}}>
+              Analyser ma situation gratuitement →
+            </button>
+            <p style={{color:C.textDim,fontSize:12,textAlign:"center",marginTop:16,fontFamily:"sans-serif"}}>Résultat envoyé par email · Aucun spam · Par Olivier — Dans le 12</p>
+          </div>
+        </div>
+      );
+
+      // QUESTIONS
+      if (step >= 1 && step <= total && currentQ) return (
+        <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",fontFamily:"Georgia,serif"}}>
+          <div style={{height:3,background:C.border}}>
+            <div style={{height:"100%",width:`${progress}%`,background:C.accent,transition:"width 0.5s ease"}}/>
+          </div>
+          <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,overflowX:"auto",padding:"0 24px"}}>
+            {blockOrder.map((block,i) => {
+              const isActive = block === currentBlock;
+              const isPast = i < blockProgress;
+              return (
+                <div key={block} style={{padding:"12px 16px",fontSize:11,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",color:isActive?C.accent:isPast?C.accentDim:C.textDim,borderBottom:isActive?`2px solid ${C.accent}`:"2px solid transparent",whiteSpace:"nowrap",transition:"all 0.3s"}}>
+                  {isPast?"✓ ":""}{blockLabels[block]}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"32px 24px",opacity:animating?0:1,transform:animating?"translateY(10px)":"translateY(0)",transition:"all 0.3s ease"}}>
+            <div style={{maxWidth:540,width:"100%"}}>
+              <div style={{color:C.textDim,fontSize:11,fontFamily:"monospace",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>{step} / {total}</div>
+              <h2 style={{color:C.text,fontSize:"clamp(18px,3vw,24px)",fontWeight:400,lineHeight:1.4,margin:"0 0 8px",letterSpacing:"-0.01em"}}>{currentQ.question}</h2>
+              {currentQ.sub && <p style={{color:C.textMuted,fontSize:14,margin:"0 0 32px",fontFamily:"sans-serif",lineHeight:1.6}}>{currentQ.sub}</p>}
+              {!currentQ.sub && <div style={{marginBottom:32}}/>}
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {currentQ.options.map(opt => (
+                  <button key={opt.value} onClick={() => handleAnswer(opt.value)}
+                    style={{display:"flex",alignItems:"center",gap:16,padding:"16px 20px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,cursor:"pointer",textAlign:"left",width:"100%"}}
+                    onMouseEnter={e => {e.currentTarget.style.borderColor=C.accent; e.currentTarget.style.background=C.surfaceLight;}}
+                    onMouseLeave={e => {e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background=C.surface;}}
+                  >
+                    <span style={{fontSize:20,width:28,textAlign:"center"}}>{opt.icon}</span>
+                    <span style={{color:C.text,fontSize:15,fontFamily:"sans-serif",lineHeight:1.4}}>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+              {step > 1 && <button onClick={() => setStep(s => s-1)} style={{marginTop:24,background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:13,fontFamily:"sans-serif",padding:0}}>← Retour</button>}
+            </div>
+          </div>
+        </div>
+      );
+
+      // EMAIL
+      if (step === total + 1) return (
+        <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"Georgia,serif"}}>
+          <div style={{maxWidth:480,width:"100%"}}>
+            <div style={{width:56,height:56,background:`${C.accent}20`,border:`1px solid ${C.accentDim}`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:28}}>🧠</div>
+            <h2 style={{color:C.text,fontSize:28,fontWeight:400,margin:"0 0 12px",letterSpacing:"-0.02em"}}>Votre analyse est prête.</h2>
+            <p style={{color:C.textMuted,fontSize:15,lineHeight:1.7,margin:"0 0 32px",fontFamily:"sans-serif"}}>
+              Entrez votre email pour recevoir votre recommandation personnalisée — générée à partir des {total} critères que vous venez de renseigner.
+            </p>
+            <input ref={inputRef} type="email" placeholder="votre@email.com" value={email}
+              onChange={e => { setEmail(e.target.value); setEmailValid(validateEmail(e.target.value)); }}
+              onKeyDown={e => e.key === "Enter" && emailValid && handleSubmit()}
+              style={{width:"100%",padding:"16px 20px",background:C.surface,border:`1px solid ${emailValid?C.accent:C.border}`,borderRadius:10,color:C.text,fontSize:16,fontFamily:"sans-serif",outline:"none",boxSizing:"border-box",marginBottom:16,transition:"border-color 0.2s"}}
+            />
+            <button onClick={handleSubmit} disabled={!emailValid||loading}
+              style={{width:"100%",padding:"17px 32px",background:emailValid?C.accent:C.border,color:emailValid?"#0f0e0c":C.textDim,border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:emailValid?"pointer":"not-allowed",fontFamily:"monospace",letterSpacing:"0.02em"}}>
+              {loading ? "Envoi en cours..." : "Recevoir mon analyse →"}
+            </button>
+            <p style={{color:C.textDim,fontSize:12,textAlign:"center",marginTop:20,fontFamily:"sans-serif"}}>Vos données ne sont pas revendues. Un seul email de notre part.</p>
+          </div>
+        </div>
+      );
+
+      // CONFIRMATION
+      if (step === total + 2 && scoring) {
+        const pl = getProfileLabel(scoring.profile);
+        const t2 = scoring.vendreScore + scoring.acheterScore;
+        const pv = Math.round((scoring.vendreScore/(t2||1))*100);
+        const pa = Math.round((scoring.acheterScore/(t2||1))*100);
+        return (
+          <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"32px 24px",fontFamily:"Georgia,serif"}}>
+            <div style={{maxWidth:500,width:"100%",textAlign:"center"}}>
+              <div style={{width:72,height:72,background:`${C.accent}18`,border:`1px solid ${C.accentDim}`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 28px"}}>📬</div>
+              <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${pl.color}18`,border:`1px solid ${pl.color}60`,borderRadius:20,padding:"6px 14px",marginBottom:20}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:pl.color}}/>
+                <span style={{color:pl.color,fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"monospace"}}>Profil détecté · {pl.text}</span>
+              </div>
+              <h1 style={{color:C.text,fontSize:26,fontWeight:400,margin:"0 0 16px",letterSpacing:"-0.02em",lineHeight:1.3}}>Votre analyse est en route.</h1>
+              <p style={{color:C.textMuted,fontSize:15,lineHeight:1.7,margin:"0 0 32px",fontFamily:"sans-serif"}}>
+                Votre recommandation personnalisée vient d'être envoyée à <strong style={{color:C.text}}>{email}</strong>.<br/>
+                Consultez votre boîte mail — elle devrait arriver dans quelques secondes.
+              </p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:32}}>
+                {[{label:"Vendre d'abord",pct:pv,color:C.accent},{label:"Acheter d'abord",pct:pa,color:"#6aaa78"}].map(({label,pct,color}) => (
+                  <div key={label} style={{padding:"16px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10}}>
+                    <div style={{color:C.textMuted,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6}}>{label}</div>
+                    <div style={{color,fontSize:28,fontWeight:700,fontFamily:"monospace",marginBottom:8}}>{pct}%</div>
+                    <div style={{height:3,background:C.border,borderRadius:2}}>
+                      <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{padding:"24px",background:`${C.accent}10`,border:`1px solid ${C.accentDim}`,borderRadius:12,marginBottom:24}}>
+                <p style={{color:C.textMuted,fontSize:14,lineHeight:1.6,margin:"0 0 16px",fontFamily:"sans-serif"}}>Vous ne voulez pas attendre ? Discutez directement avec Olivier.</p>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
+                  style={{display:"inline-block",padding:"13px 28px",background:"#25d366",color:"#fff",borderRadius:8,textDecoration:"none",fontSize:14,fontWeight:700,fontFamily:"monospace",letterSpacing:"0.02em"}}>
+                  📲 Contacter Olivier sur WhatsApp
+                </a>
+                <div style={{color:C.textDim,fontSize:11,marginTop:12,fontFamily:"sans-serif"}}>Agent immobilier · Paris 12ème · Dans le 12 · Abriculteurs</div>
+              </div>
+              <button onClick={reset} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:13,fontFamily:"sans-serif"}}>↺ Recommencer l'analyse</button>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
