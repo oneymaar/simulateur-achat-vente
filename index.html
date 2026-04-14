@@ -213,37 +213,80 @@ function generateRec(a,sc){
   const base=profile.replace("_challenge","");
   const challenged=profile.includes("_challenge");
   const intuitionLabel=intuition==="sell_first"?"vendre d'abord":intuition==="buy_first"?"acheter d'abord":null;
+
+  // ACCROCHE
   let accroche="";
   if(!intuitionLabel)accroche="Vous hésitiez sur la stratégie à adopter — c'est souvent le signe d'une situation plus nuancée qu'il n'y paraît. Votre analyse le confirme.";
   else if(!challenged)accroche=`Votre intuition était la bonne. L'analyse de vos ${Object.keys(a).length} critères confirme que la stratégie "${intuitionLabel}" est bien adaptée à votre profil — mais attention, l'exécution est tout.`;
-  else{const wrong=intuition==="sell_first"?"vendre d'abord":"acheter d'abord";const right=intuition==="sell_first"?"acheter en priorité":"vendre en priorité";accroche=`Votre réflexe de "${wrong}" est compréhensible — c'est celui de la majorité. Mais à l'analyse de votre situation concrète, la stratégie la plus adaptée est plutôt d'${right}. Voici pourquoi.`;}
+  else{
+    const wrong=intuition==="sell_first"?"vendre d'abord":"acheter d'abord";
+    const right=intuition==="sell_first"?"acheter en priorité":"vendre en priorité";
+    accroche=`Votre réflexe de "${wrong}" est compréhensible — c'est celui de la majorité. Mais à l'analyse de votre situation concrète, la stratégie la plus adaptée est plutôt d'${right}. Voici pourquoi.`;
+  }
+
+  // RECOMMANDATION PRINCIPALE
   let reco="";
-  if(base==="B")reco="Votre profil indique clairement qu'il faut vendre avant d'acheter. Votre montage financier dépend du produit de cession, et tenter d'acheter d'abord vous exposerait à un risque de portage que votre situation ne permet pas d'absorber sereinement.";
-  else if(base==="C")reco="Votre profil vous donne une vraie marge de manœuvre pour acheter d'abord si la bonne opportunité se présente. Votre capacité financière autonome et votre flexibilité logistique vous le permettent — à condition de cadrer précisément votre stratégie de vente en parallèle.";
-  else if(base==="D")reco="Votre situation est équilibrée : ni clairement en faveur de vendre d'abord, ni d'acheter d'abord. C'est le profil qui bénéficie le plus d'une opération simultanée bien coordonnée — avec une synchronisation précise des deux transactions.";
+  if(base==="B")reco="Votre profil indique clairement qu'il faut **vendre avant d'acheter**. Votre montage financier dépend du produit de cession, et tenter d'acheter d'abord vous exposerait à un risque de portage que votre situation ne permet pas d'absorber sereinement.";
+  else if(base==="C")reco="Votre profil vous donne une vraie marge de manœuvre pour **acheter d'abord** si la bonne opportunité se présente. Votre capacité financière autonome et votre flexibilité logistique vous le permettent — à condition de cadrer précisément votre stratégie de vente en parallèle.";
+  else if(base==="D")reco="Votre situation est équilibrée : ni clairement en faveur de vendre d'abord, ni d'acheter d'abord. C'est le profil qui bénéficie le plus d'une **opération simultanée bien coordonnée** — avec une synchronisation précise des deux transactions.";
   else reco="Votre situation cumule plusieurs facteurs de complexité qui rendent une recommandation standardisée insuffisante. Plusieurs scénarios sont envisageables selon des variables que seul un entretien approfondi permettra de peser correctement.";
+
+  // ARGUMENTS PERSONNALISÉS
   const args=[];
-  if(a.bien_dpe==="g")args.push("Votre DPE G est aujourd'hui un frein majeur à la vente : les acheteurs exigent des décotes importantes et les délais s'allongent.");
-  else if(a.bien_dpe==="ef")args.push("Avec un DPE E ou F, votre bien entre dans la catégorie des passoires thermiques. Le marché parisien actuel pénalise ces biens sur le prix et sur le délai — anticipez une négociation.");
-  else if(a.bien_dpe==="abc")args.push("Votre DPE favorable (A-C) est un vrai atout de liquidité sur le marché du 12ème. Les biens bien notés se vendent plus vite et se négocient moins.");
-  if(a.bien_prix==="dessus")args.push("Votre prix envisagé au-dessus du marché est le risque numéro un d'enlisement. Dans un marché en ajustement comme celui du 12ème, surestimer son bien coûte des semaines — parfois des mois.");
-  else if(a.bien_prix==="sous_marche")args.push("Votre approche prix sous le marché est une force : elle génère de la concurrence et raccourcit le délai de vente, ce qui sécurise l'ensemble du projet.");
-  if(a.credit_en_cours==="oui_important")args.push("Avec un capital restant dû important, le produit de votre vente est indispensable pour boucler votre financement. Toute stratégie d'achat avant vente vous expose à un prêt relais dont le coût peut dépasser 15 000€ sur 12 mois.");
-  if(a.apport_dispo==="oui")args.push("Votre apport disponible hors vente vous donne une autonomie réelle. C'est ce qui rend un achat préalable envisageable sans mettre en danger votre équilibre financier.");
-  if(a.hebergement==="non")args.push("L'absence de solution de repli logistique est une contrainte forte : dans Paris, trouver une location meublée de transition est difficile et coûteux.");
-  if(a.projet_achat==="trouve")args.push("Vous avez déjà un bien en vue — c'est une donnée qui change tout. L'opportunité identifiée crée une pression temporelle réelle sur votre côté vendeur.");
-  if(a.criteres==="tres_precis")args.push("Vos critères d'achat très précis signifient que trouver le bon bien prendra du temps. Attendre d'avoir vendu pour chercher risque de vous exposer à une période de flottement inconfortable.");
-  if(a.stress==="stresse"&&base==="C")args.push("Votre profil prudent mérite d'être pris en compte : si vous achetez d'abord, assurez-vous d'avoir un plan B clair en cas de délai de vente plus long que prévu.");
-  const estW=noEstimation?"\n\nÉtape préalable indispensable : votre bien n'a pas encore été estimé par un professionnel — ou cette estimation est trop ancienne pour refléter le marché actuel. Sans prix de vente réaliste, toute stratégie repose sur du sable. C'est la première chose à faire, avant même de prendre d'autres décisions.":"";
-  const papW=sellingPAP?"\n\nNote sur votre mise en vente : vous gérez actuellement votre vente en direct. Dans un marché parisien en mouvement comme le 12ème, cela peut allonger les délais et complexifier les négociations — deux facteurs qui peuvent peser sur l'ensemble de votre projet achat-vente.":"";
-  const courtier="\n\nUn point souvent négligé : contactez un courtier en financement avant de vous engager sur quoi que ce soit. Connaître précisément votre capacité d'emprunt — avec ou sans le produit de votre vente — est indispensable pour négocier sereinement des deux côtés.";
-  let actions="";
-  if(base==="B")actions="1. Faites réaliser une estimation sérieuse de votre bien dans les 15 prochains jours — pas une estimation en ligne, une vraie visite avec un agent du secteur. 2. Définissez votre prix de mise en vente avec une marge de négociation intégrée dès le départ. 3. Préparez vos diagnostics immobiliers maintenant — DPE, amiante, électricité — pour ne pas perdre de temps une fois le mandat signé.";
-  else if(base==="C")actions="1. Faites simuler votre capacité d'emprunt maximale sans le produit de vente — c'est votre vrai plafond d'achat autonome. 2. Préparez votre dossier de vente en parallèle : estimation, diagnostics, photos. 3. Identifiez précisément le délai entre votre signature achat et votre besoin de fonds — c'est la fenêtre dans laquelle votre vente doit se conclure.";
-  else if(base==="D")actions="1. Posez une date cible de déménagement et travaillez à rebours : c'est le seul moyen de synchroniser les deux transactions. 2. Mandatez un agent capable de gérer les deux côtés — la coordination est la clé d'une opération simultanée réussie. 3. Prévoyez une clause de condition suspensive croisée si possible.";
-  else actions="1. Listez par ordre de priorité vos contraintes non-négociables (financières, logistiques, timing). 2. Faites estimer votre bien avant tout autre démarche. 3. Consultez un expert qui connaît le marché local pour arbitrer entre les scénarios possibles.";
+  if(a.bien_dpe==="g")args.push("Votre **DPE G** est aujourd'hui un frein majeur à la vente : les acheteurs exigent des décotes importantes et les délais s'allongent. C'est un facteur déterminant dans votre calendrier.");
+  else if(a.bien_dpe==="ef")args.push("Avec un **DPE E ou F**, votre bien entre dans la catégorie des passoires thermiques. Le marché parisien actuel pénalise ces biens sur le prix et sur le délai — anticipez une négociation.");
+  else if(a.bien_dpe==="abc")args.push("Votre **DPE favorable (A-C)** est un vrai atout de liquidité sur le marché du 12ème. Les biens bien notés se vendent plus vite et se négocient moins.");
+  if(a.bien_prix==="dessus")args.push("**Prix au-dessus du marché** : c'est le risque numéro un d'enlisement. Dans un marché en ajustement comme celui du 12ème, surestimer son bien coûte des semaines — parfois des mois.");
+  else if(a.bien_prix==="sous_marche")args.push("**Prix sous le marché** : votre approche est une force. Elle génère de la concurrence et raccourcit le délai de vente, ce qui sécurise l'ensemble du projet.");
+  if(a.credit_en_cours==="oui_important")args.push("**Crédit important en cours** : le produit de votre vente est indispensable pour boucler votre financement. Toute stratégie d'achat avant vente vous expose à un prêt relais dont le coût peut dépasser 15 000€ sur 12 mois.");
+  if(a.apport_dispo==="oui")args.push("**Apport disponible** : votre autonomie financière hors vente est réelle. C'est ce qui rend un achat préalable envisageable sans mettre en danger votre équilibre.");
+  if(a.hebergement==="non")args.push("**Aucune solution de repli** : dans Paris, trouver une location meublée de transition est difficile et coûteux. Ce facteur plaide pour séquencer l'opération avec soin.");
+  if(a.projet_achat==="trouve")args.push("**Bien en vue** : vous avez déjà identifié une opportunité — ce qui crée une pression temporelle réelle sur votre côté vendeur.");
+  if(a.criteres==="tres_precis")args.push("**Critères très précis** : trouver le bon bien prendra du temps. Attendre d'avoir vendu pour chercher risque de vous exposer à une période de flottement inconfortable.");
+  if(a.stress==="stresse"&&base==="C")args.push("**Profil prudent** : si vous achetez d'abord, assurez-vous d'avoir un plan B clair en cas de délai de vente plus long que prévu.");
+
+  const argsFormatted = args.slice(0,3).map(arg => `• ${arg}`).join("\n");
+
+  // VIGILANCES
+  const vigilances = [];
+  if(noEstimation)vigilances.push("**Estimation indispensable** : votre bien n'a pas encore été estimé par un professionnel — ou cette estimation est trop ancienne. Sans prix de vente réaliste, toute stratégie repose sur du sable. C'est la première chose à faire, avant toute autre décision.");
+  if(sellingPAP)vigilances.push("**Vente en PAP** : dans un marché parisien en mouvement comme le 12ème, gérer sa vente seul peut allonger les délais et complexifier les négociations — deux facteurs qui pèsent sur l'ensemble du projet.");
+  vigilances.push("**Courtier en financement** : contactez un courtier avant de vous engager sur quoi que ce soit. Connaître précisément votre capacité d'emprunt — avec ou sans le produit de votre vente — est indispensable pour négocier sereinement des deux côtés.");
+
+  // ACTIONS
+  let actionsList = [];
+  if(base==="B"){
+    actionsList=[
+      "Faites réaliser une **estimation sérieuse** de votre bien dans les 15 prochains jours — pas une estimation en ligne, une vraie visite avec un agent du secteur.",
+      "Définissez votre **prix de mise en vente** avec une marge de négociation intégrée dès le départ — pas en partant haut pour baisser ensuite.",
+      "Préparez vos **diagnostics immobiliers** maintenant — DPE, amiante, électricité — pour ne pas perdre de temps une fois le mandat signé."
+    ];
+  } else if(base==="C"){
+    actionsList=[
+      "Faites simuler votre **capacité d'emprunt maximale** sans le produit de vente — c'est votre vrai plafond d'achat autonome.",
+      "Préparez votre **dossier de vente en parallèle** : estimation, diagnostics, photos — pour pouvoir mettre sur le marché rapidement dès que vous aurez signé un compromis d'achat.",
+      "Identifiez précisément le **délai entre votre signature achat et votre besoin de fonds** — c'est la fenêtre dans laquelle votre vente doit se conclure."
+    ];
+  } else if(base==="D"){
+    actionsList=[
+      "Posez une **date cible de déménagement** et travaillez à rebours : c'est le seul moyen de synchroniser les deux transactions.",
+      "Mandatez un **agent capable de gérer les deux côtés** — la coordination est la clé d'une opération simultanée réussie.",
+      "Prévoyez si possible une **clause de condition suspensive croisée** — cela sécurise les deux transactions l'une par rapport à l'autre."
+    ];
+  } else {
+    actionsList=[
+      "Listez par ordre de priorité vos **contraintes non-négociables** (financières, logistiques, timing).",
+      "Faites **estimer votre bien** avant tout autre démarche — c'est la donnée qui manque pour trancher.",
+      "Consultez un **expert du marché local** pour arbitrer entre les scénarios possibles."
+    ];
+  }
+  const actionsFormatted = actionsList.map((a,i) => `${i+1}. ${a}`).join("\n");
+
   const invite="Cette analyse est un premier cadrage basé sur vos déclarations. Une conversation de 20 minutes avec un expert du terrain — qui connaît les délais réels de vente dans le 12ème, les mécanismes de financement et les pièges à éviter — peut transformer radicalement votre approche. C'est exactement ce que je propose.";
-  return`${accroche}\n\n${reco}\n\n${args.slice(0,3).join(" ")}${estW}${papW}${courtier}\n\n${actions}\n\n${invite}`;
+
+  const vigilancesSection = vigilances.length > 0 ? `\n⚠️ Points de vigilance\n\n${vigilances.map(v=>`• ${v}`).join("\n")}` : "";
+
+  return `🎯 Notre analyse\n\n${accroche}\n\n---\n\n📊 Votre profil\n\n${reco}\n\n---\n\n💡 Pourquoi cette stratégie ?\n\n${argsFormatted}${vigilancesSection}\n\n---\n\n✅ Vos 3 actions prioritaires\n\n${actionsFormatted}\n\n---\n\n💬 La suite\n\n${invite}`;
 }
 
 function getProfileBadge(p){
@@ -385,7 +428,41 @@ function ResultPage({token}){
               <div style={{color:G.textLight,fontSize:11,fontWeight:400}}>Générée à partir de vos 16 réponses</div>
             </div>
           </div>
-          <div style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.85,whiteSpace:"pre-wrap"}}>{data.rec}</div>
+          {(() => {
+            const renderRec = (text) => {
+              return text.split("\n").map((line, i) => {
+                // Titres avec emoji
+                if(/^[🎯📊💡⚠️✅💬]/.test(line) && line.includes(" ")) {
+                  return <div key={i} style={{color:G.green,fontSize:13,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",margin:"20px 0 8px",paddingBottom:6,borderBottom:`1px solid ${G.greenBorder}`}}>{line}</div>;
+                }
+                // Séparateur
+                if(line==="---") return <div key={i} style={{height:1,background:G.greenBorder,margin:"4px 0"}}/>;
+                // Ligne vide
+                if(line.trim()==="") return <div key={i} style={{height:8}}/>;
+                // Rendre le gras **texte**
+                const parts = line.split(/\*\*([^*]+)\*\*/g);
+                const rendered = parts.map((p,j) => j%2===1 ? <strong key={j} style={{fontWeight:700,color:G.text}}>{p}</strong> : p);
+                // Actions numérotées
+                if(/^\d\./.test(line)) {
+                  return <div key={i} style={{display:"flex",gap:10,marginBottom:8,paddingLeft:4}}>
+                    <span style={{color:G.green,fontWeight:700,minWidth:16}}>{line[0]}.</span>
+                    <span style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.75}}>{parts.map((p,j)=>j%2===1?<strong key={j} style={{fontWeight:700}}>{p}</strong>:p)}</span>
+                  </div>;
+                }
+                // Bullet points
+                if(line.startsWith("• ")) {
+                  const bulletParts = line.slice(2).split(/\*\*([^*]+)\*\*/g);
+                  return <div key={i} style={{display:"flex",gap:8,marginBottom:8,paddingLeft:4}}>
+                    <span style={{color:G.green,fontWeight:700,marginTop:2}}>•</span>
+                    <span style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.75}}>{bulletParts.map((p,j)=>j%2===1?<strong key={j} style={{fontWeight:700}}>{p}</strong>:p)}</span>
+                  </div>;
+                }
+                // Texte normal
+                return <div key={i} style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.75,marginBottom:4}}>{rendered}</div>;
+              });
+            };
+            return <div>{renderRec(data.rec)}</div>;
+          })()}
         </div>
 
         {/* CTA WhatsApp */}
