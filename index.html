@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Acheter puis vendre — ou l'inverse ? | Dans le 12</title>
-  <meta name="description" content="Simulateur stratégique pour acquéreurs-vendeurs dans le 12ème arrondissement."/>
+  <meta name="description" content="Simulateur stratégique pour acquéreurs-vendeurs dans le 12ème arrondissement. Analysez votre situation en 3 minutes."/>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -28,7 +28,7 @@
 const { useState, useRef, useEffect } = React;
 
 const LOGO_SRC = "https://raw.githubusercontent.com/oneymaar/simulateur-achat-vente/main/logo-dans-le-12.png";
-const WA_SRC = "https://raw.githubusercontent.com/oneymaar/simulateur-achat-vente/main/logo-whatsapp.png";
+const WA_SRC   = "https://raw.githubusercontent.com/oneymaar/simulateur-achat-vente/main/logo-whatsapp.png";
 const WEBHOOK_URL  = "https://hook.eu1.make.com/1h1vbt74zo2hu8hgjxjhcdia7a309omo";
 const WHATSAPP_URL = "https://wa.me/33670744935?text=Bonjour%20Olivier%2C%20j%27ai%20utilisé%20votre%20simulateur%20achat-vente%20et%20j%27aimerais%20en%20discuter.";
 const BASE_URL     = "https://simulateur.dansle12.fr";
@@ -37,17 +37,10 @@ const EMAILJS_TEMPLATE_ID = "template_fyuoypr";
 const EMAILJS_PUBLIC_KEY  = "adak1EE3wXIEdmZHg";
 
 const G = {
-  green:     "#00A948",
-  greenLight:"#9DFCC7",
-  greenDark: "#007a34",
-  greenBg:   "#f0faf5",
-  greenBorder:"#c5eeda",
-  text:      "#1a2e1f",
-  textMuted: "#4a7a5a",
-  textLight: "#8ab49a",
-  white:     "#ffffff",
-  danger:    "#c0392b",
-  dangerBg:  "#fdf0ef",
+  green:"#00A948", greenLight:"#9DFCC7", greenDark:"#007a34",
+  greenBg:"#f0faf5", greenBorder:"#c5eeda",
+  text:"#1a2e1f", textMuted:"#4a7a5a", textLight:"#8ab49a", white:"#ffffff",
+  danger:"#c0392b", dangerBg:"#fdf0ef",
 };
 
 const questions = [
@@ -57,10 +50,8 @@ const questions = [
     {value:"unsure",label:"Je ne sais vraiment pas",icon:"⚖️"},
   ]},
   {id:"bien_type",block:"vente",question:"Quel type de bien souhaitez-vous vendre ?",options:[
-    {value:"studio_1p",label:"Studio / T1",icon:"▪️"},
-    {value:"2p_3p",label:"T2 / T3",icon:"▫️"},
-    {value:"4p_plus",label:"T4 et plus",icon:"⬜"},
-    {value:"maison",label:"Maison",icon:"🏡"},
+    {value:"studio_1p",label:"Studio / T1",icon:"▪️"},{value:"2p_3p",label:"T2 / T3",icon:"▫️"},
+    {value:"4p_plus",label:"T4 et plus",icon:"⬜"},{value:"maison",label:"Maison",icon:"🏡"},
   ]},
   {id:"bien_etat",block:"vente",question:"Dans quel état se trouve votre bien ?",options:[
     {value:"refait",label:"Refait à neuf / très bon état",icon:"✨"},
@@ -68,10 +59,8 @@ const questions = [
     {value:"travaux",label:"Travaux importants à prévoir",icon:"🔨"},
   ]},
   {id:"bien_dpe",block:"vente",question:"Quel est le DPE de votre bien ?",sub:"Le DPE impacte fortement la liquidité sur le marché actuel.",options:[
-    {value:"abc",label:"A, B ou C",icon:"🟢"},
-    {value:"d",label:"D",icon:"🟡"},
-    {value:"ef",label:"E ou F",icon:"🟠"},
-    {value:"g",label:"G (passoire thermique)",icon:"🔴"},
+    {value:"abc",label:"A, B ou C",icon:"🟢"},{value:"d",label:"D",icon:"🟡"},
+    {value:"ef",label:"E ou F",icon:"🟠"},{value:"g",label:"G (passoire thermique)",icon:"🔴"},
     {value:"unknown",label:"Je ne sais pas",icon:"❓"},
   ]},
   {id:"bien_prix",block:"vente",question:"Par rapport au marché actuel du 12ème, votre prix envisagé est :",sub:"Soyez honnête — c'est là que se jouent beaucoup d'erreurs stratégiques.",options:[
@@ -160,193 +149,207 @@ const labelMap={
 };
 const h=(k,v)=>labelMap[k]?.[v]||v||"";
 
+// ─── SCORING ───────────────────────────────────────────────────
 function scoreProfile(a){
   let v=0,ac=0,c=0;
-  if(a.bien_etat==="refait")v+=2;
-  if(a.bien_etat==="travaux"){ac+=1;c+=1;}
-  if(a.bien_dpe==="abc")v+=2;
-  if(a.bien_dpe==="ef"){ac+=1;c+=2;}
-  if(a.bien_dpe==="g"){ac+=2;c+=3;}
-  if(a.bien_prix==="sous_marche")ac+=2;
-  if(a.bien_prix==="dessus"){v+=1;c+=2;}
-  if(a.credit_en_cours==="oui_important"){v+=3;c+=1;}
-  if(a.credit_en_cours==="non")ac+=2;
-  if(a.apport_dispo==="oui")ac+=3;
-  if(a.apport_dispo==="non")v+=2;
-  if(a.relais==="oui_ok")ac+=2;
-  if(a.hebergement==="famille")ac+=2;
-  if(a.hebergement==="non"){ac+=2;c+=1;}
-  if(a.projet_achat==="trouve"){ac+=3;c+=1;}
-  if(a.projet_achat==="debut")v+=2;
-  if(a.criteres==="tres_precis"){ac+=1;c+=2;}
-  if(a.criteres==="flexibles")v+=1;
-  if(a.timing==="urgent"){v+=1;c+=2;}
-  if(a.stress==="stresse")v+=2;
-  if(a.stress==="serein")ac+=1;
-  if(a.priorite==="securite")v+=2;
-  if(a.priorite==="optimal")ac+=1;
-  const total=v+ac;
-  const ratio=total>0?v/total:0.5;
+  const etat=a.bien_etat,dpe=a.bien_dpe,prix=a.bien_prix,est=a.estimation,av=a.avancement_vente;
+  const achat=a.projet_achat,crit=a.criteres,timing=a.timing;
+  const credit=a.credit_en_cours,apport=a.apport_dispo,relais=a.relais,heb=a.hebergement;
+  const stress=a.stress,prio=a.priorite,intuition=a.intuition;
+
+  if(etat==='refait')ac+=2; else if(etat==='travaux'){v+=2;c+=1;}
+  if(dpe==='abc')ac+=2; else if(dpe==='ef'){v+=2;c+=1;} else if(dpe==='g'){v+=3;c+=2;}
+  if(prix==='sous_marche')ac+=2; else if(prix==='dessus'){v+=2;c+=1;}
+  if(est==='non'){v+=1;c+=1;} else if(est==='oui_ancienne')v+=1;
+  if(av==='en_vente_agent')ac+=1; else if(av==='en_vente_pap')c+=1; else if(av==='pas_encore')v+=1;
+  if(achat==='trouve'){ac+=3;c+=1;} else if(achat==='recherche_active')ac+=1; else if(achat==='debut')v+=2;
+  if(crit==='tres_precis'){ac+=2;c+=1;} else if(crit==='flexibles')v+=2;
+  if(timing==='urgent')c+=1;
+  if(credit==='oui_important'){v+=3;c+=1;} else if(credit==='oui_faible')ac+=1; else if(credit==='non')ac+=2;
+  if(apport==='oui')ac+=3; else if(apport==='partiel')ac+=1; else if(apport==='non')v+=2;
+  if(relais==='oui_ok')ac+=2; else if(relais==='oui_nok')v+=1;
+  if(heb==='famille')v+=1; else if(heb==='location')ac+=1; else if(heb==='non'){ac+=3;c+=1;}
+  if(stress==='stresse')v+=1; else if(stress==='serein')ac+=1;
+  if(prio==='securite')v+=2; else if(prio==='optimal')ac+=1;
+
+  const total=v+ac||1, pctV=Math.round(v/total*100), pctA=100-pctV;
   let profile;
-  if(c>=6)profile="E";
-  else if(ratio>0.65)profile=a.intuition==="buy_first"?"B_challenge":"B";
-  else if(ratio<0.30)profile=a.intuition==="sell_first"?"C_challenge":"C";
-  else profile="D";
-  const isUrgent=a.timing==="urgent";
-  const noEst=a.estimation==="non"||a.estimation==="oui_ancienne";
-  const notYet=a.avancement_vente==="pas_encore"||a.avancement_vente==="reflexion";
-  const pap=a.avancement_vente==="en_vente_pap";
-  const base=profile.replace("_challenge","");
+  if(c>=7)profile='E';
+  else if(pctV>60)profile=intuition==='buy_first'?'B_challenge':'B';
+  else if(pctA>60)profile=intuition==='sell_first'?'C_challenge':'C';
+  else profile='D';
+
+  const isContraint=(profile==='B'||profile==='B_challenge')&&heb==='non';
+  const isUrgent=timing==='urgent';
+  const noEst=est==='non'||est==='oui_ancienne';
+  const notYet=av==='pas_encore'||av==='reflexion';
+  const pap=av==='en_vente_pap';
+  const base=profile.replace('_challenge','');
+
   let qualification="🟡 Tiède";
   if(isUrgent&&noEst&&notYet)qualification="🔥 Très chaud — pressé, pas d'estimation, pas encore en vente";
   else if(isUrgent&&notYet)qualification="🔥 Chaud — pressé, pas encore en vente";
-  else if(noEst&&base==="B")qualification="🔥 Chaud — vendeur prioritaire sans estimation";
+  else if(noEst&&base==='B')qualification="🔥 Chaud — vendeur prioritaire sans estimation";
   else if(pap)qualification="🟠 Intéressant — en PAP, potentiel de reprise mandat";
-  else if(a.avancement_vente==="en_vente_agent")qualification="🟡 Tiède — déjà accompagné";
-  else if(a.projet_achat==="trouve")qualification="🟠 Intéressant — bien achat identifié, décision imminente";
+  else if(av==='en_vente_agent')qualification="🟡 Tiède — déjà accompagné";
+  else if(achat==='trouve')qualification="🟠 Intéressant — bien achat identifié, décision imminente";
+
   const profil_label={B:"Vendeur en priorité",B_challenge:"Vendeur en priorité",C:"Acheteur en priorité",C_challenge:"Acheteur en priorité",D:"Opération simultanée",E:"Situation complexe"}[profile]||profile;
-  return{profile,vendreScore:v,acheterScore:ac,complexite:c,ratio,intuition:a.intuition,qualification,noEstimation:noEst,sellingPAP:pap,profil_label};
+
+  const isContraintCalc=heb==='non';
+  const cursorPos=profile==='E'?50:pctV>60?(isContraintCalc?42:Math.round((1-pctV/100)*100)):pctA>60?Math.round(pctA/100*100):50;
+
+  return{profile,vendreScore:v,acheterScore:ac,complexite:c,pctV,pctA,intuition,qualification,
+    noEstimation:noEst,sellingPAP:pap,profil_label,isContraint,cursorPos,
+    etat,dpe,prix,est,av,achat,crit,timing,credit,apport,relais,heb,stress,prio};
 }
 
-function generateRec(a,sc){
-  const{profile,intuition,noEstimation,sellingPAP}=sc;
-  const base=profile.replace("_challenge","");
-  const challenged=profile.includes("_challenge");
-  const intuitionLabel=intuition==="sell_first"?"vendre d'abord":intuition==="buy_first"?"acheter d'abord":null;
+// ─── GÉNÉRATION RECOMMANDATION ─────────────────────────────────
+function generateRec(sc){
+  const{profile,pctV,pctA,intuition,isContraint,etat,dpe,prix,est,av,achat,crit,credit,apport,relais,heb,stress}=sc;
+  const base=profile.replace('_challenge','');
+  const challenged=profile.includes('_challenge');
 
-  // ACCROCHE
-  let accroche="";
-  if(!intuitionLabel)accroche="Vous hésitiez sur la stratégie à adopter — c'est souvent le signe d'une situation plus nuancée qu'il n'y paraît. Votre analyse le confirme.";
-  else if(!challenged)accroche=`Votre intuition était la bonne. L'analyse de vos ${Object.keys(a).length} critères confirme que la stratégie "${intuitionLabel}" est bien adaptée à votre profil — mais attention, l'exécution est tout.`;
-  else{
-    const wrong=intuition==="sell_first"?"vendre d'abord":"acheter d'abord";
-    const right=intuition==="sell_first"?"acheter en priorité":"vendre en priorité";
-    accroche=`Votre réflexe de "${wrong}" est compréhensible — c'est celui de la majorité. Mais à l'analyse de votre situation concrète, la stratégie la plus adaptée est plutôt d'${right}. Voici pourquoi.`;
+  // Liquidité du bien
+  const liqPos=[], liqNeg=[];
+  if(etat==='refait')liqPos.push('état irréprochable'); else if(etat==='travaux')liqNeg.push('travaux importants');
+  if(dpe==='abc')liqPos.push('DPE favorable'); else if(dpe==='ef')liqNeg.push('DPE dégradé (E-F)'); else if(dpe==='g')liqNeg.push('DPE G — passoire thermique');
+  if(prix==='sous_marche')liqPos.push('prix attractif'); else if(prix==='dessus')liqNeg.push('prix au-dessus du marché');
+  const liqScore=liqPos.length-liqNeg.length;
+
+  // ── NOTRE ANALYSE ──
+  let html='';
+  html+=mT('🎯','Notre analyse');
+  html+=mB("La double opération d'achat-vente que vous projetez est toujours un projet délicat pouvant comporter des risques logistiques et financiers. Il convient d'adopter une stratégie adaptée à votre situation spécifique.");
+
+  let accroche='';
+  if(intuition==='unsure'){accroche="Vous hésitiez sur la stratégie à adopter — c'est souvent le signe d'une situation plus nuancée qu'il n'y paraît. L'analyse de vos réponses permet d'y voir plus clair.";}
+  else if(!challenged){const lbl=intuition==='sell_first'?'"vendre d\'abord"':'"acheter d\'abord"';accroche=`Votre intuition de ${lbl} se confirme à l'analyse de votre situation. La stratégie recommandée s'appuie sur les spécificités de votre profil — son exécution demande méthode et anticipation.`;}
+  else{const wrong=intuition==='sell_first'?"vendre d'abord":"acheter d'abord";const right=intuition==='sell_first'?"acheter en priorité":"vendre en priorité";accroche=`Votre réflexe de "${wrong}" est compréhensible, mais l'analyse de votre situation concrète oriente plutôt vers une stratégie d'**${right}**. Les éléments qui justifient ce choix sont détaillés ci-dessous.`;}
+  html+=mB(accroche);
+
+  // ── VOTRE PROFIL ──
+  html+=mT('📊','Votre profil');
+  let profil='';
+  if(isContraint)profil=`L'analyse de votre dossier confirme qu'il faut **vendre avant d'acheter** sur le plan financier — mais votre situation impose une contrainte majeure : **l'absence de solution de repli logistique**. Concrètement, vous ne pouvez pas finaliser la vente de votre bien sans avoir au minimum sécurisé votre prochain logement. Les deux opérations devront donc être **conduites en parallèle et finalisées dans un délai très rapproché**.`;
+  else if(base==='B')profil=`L'analyse de votre dossier indique qu'il faut **vendre avant d'acheter** (score ${pctV}%). La structure de votre financement et les caractéristiques de votre bien font de la vente l'opération prioritaire à sécuriser avant de s'engager sur un achat.`;
+  else if(base==='C')profil=`L'analyse de votre dossier indique qu'il vaut mieux **acheter avant de vendre** (score ${pctA}%). Votre situation financière et logistique vous donne la marge de manœuvre pour saisir une opportunité d'achat, avant d'enclencher la vente de votre bien actuel.`;
+  else if(base==='D')profil=`Votre situation est **équilibrée** entre les deux stratégies (${pctV}% / ${pctA}%). Une opération simultanée est envisageable, mais c'est la démarche la plus exigeante — elle nécessite une synchronisation parfaite et un accompagnement expert. Ne vous y engagez pas sans avoir sécurisé chaque étape.`;
+  else profil="Votre situation cumule plusieurs **facteurs de complexité**. Plusieurs scénarios sont envisageables selon des variables que seul un entretien approfondi permettra de peser correctement.";
+  html+=mB(profil);
+
+  // ── POURQUOI ──
+  html+=mT('💡','Pourquoi cette stratégie ?');
+  if(base==='B'){
+    if(liqNeg.length>0)html+=mBull(`**Vente potentiellement difficile** (${liqNeg.join(', ')}) — s'engager sur un achat avant d'avoir vendu risque de créer un déséquilibre : vous pourriez vous retrouver avec un achat engagé et une vente qui tarde.`);
+    else if(liqPos.length>0)html+=mBull(`**Bien ${liqScore>1?'':'relativement '}liquide** (${liqPos.join(', ')}) — une vente dans de bonnes conditions est raisonnablement anticipable, ce qui limite le risque d'une longue période d'entre-deux.`);
+    const finNeg=[];
+    if(credit==='oui_important')finNeg.push("crédit immobilier important en cours");
+    if(apport==='non')finNeg.push("pas d'apport disponible hors vente");
+    if(finNeg.length>0)html+=mBull(`**Financement dépendant de la vente** (${finNeg.join(', ')}) — acheter d'abord vous exposerait à un prêt relais coûteux, ou rendrait simplement le financement de l'achat impossible sans le produit de la cession.`);
+    if(achat==='debut')html+=mBull("**Recherche d'achat à peine commencée** — aucune urgence côté achat : prendre le temps de vendre d'abord vous permettra de chercher avec un budget précis et une capacité de négociation renforcée.");
+    else if(crit==='flexibles')html+=mBull("**Critères d'achat flexibles** — vous trouverez votre prochain bien rapidement une fois la vente finalisée, ce qui limite le risque d'une longue période de transition.");
+    if(isContraint)html+=mBull("**Contrainte logistique critique** — sans solution de repli identifiée, vous ne pouvez pas vous permettre un délai entre la vente et l'entrée dans votre prochain logement. Les deux opérations devront être pilotées en parallèle, avec une attention particulière à la synchronisation des dates de signature.");
+  }else if(base==='C'){
+    if(liqPos.length>0)html+=mBull(`**Bien ${liqScore>1?'':'relativement '}liquide** (${liqPos.join(', ')}) — vous pouvez raisonnablement anticiper une vente dans de bonnes conditions une fois l'achat sécurisé.`);
+    const finPos=[];
+    if(apport==='oui')finPos.push("apport disponible");
+    if(credit==='non')finPos.push("pas de crédit en cours");
+    if(relais==='oui_ok')finPos.push("prêt relais envisageable");
+    if(finPos.length>0)html+=mBull(`**Autonomie financière** (${finPos.join(', ')}) — vous disposez des ressources pour acheter d'abord sans être entièrement dépendant du produit de la cession.`);
+    if(heb==='non')html+=mBull("**Contrainte logistique** — sans solution d'hébergement entre les deux opérations, vendre d'abord vous exposerait à une période sans logement fixe dans un marché locatif très tendu. Acheter d'abord élimine ce risque.");
+    else if(heb==='famille')html+=mBull("**Solution logistique disponible** — votre solution de repli vous offre la flexibilité d'acheter d'abord sans risque logistique immédiat.");
+    const diffAchat=[];
+    if(crit==='tres_precis')diffAchat.push("critères très précis");
+    if(achat==='debut')diffAchat.push("recherche à peine commencée");
+    if(diffAchat.length>0)html+=mBull(`**Achat potentiellement long** (${diffAchat.join(', ')}) — commencer la recherche maintenant vous met en position de saisir la bonne opportunité sans avoir la pression d'une vente déjà conclue.`);
+    if(achat==='trouve')html+=mBull("**Opportunité concrète identifiée** — vous avez déjà un bien en vue. Attendre d'avoir vendu, c'est risquer de laisser passer cette occasion.");
+  }else if(base==='D'){
+    html+=mBull("**Situation équilibrée** — ni votre vente ni votre achat ne présente de difficulté nettement supérieure à l'autre, ce qui rend une approche simultanée techniquement envisageable.");
+    html+=mBull("**Condition de succès** — une opération simultanée exige une synchronisation parfaite : compromis signés à dates rapprochées, délais de réalisation bien calés, et idéalement un seul interlocuteur capable de coordonner les deux côtés.");
   }
 
-  // RECOMMANDATION PRINCIPALE
-  let reco="";
-  if(base==="B")reco="Votre profil indique clairement qu'il faut **vendre avant d'acheter**. Votre montage financier dépend du produit de cession, et tenter d'acheter d'abord vous exposerait à un risque de portage que votre situation ne permet pas d'absorber sereinement.";
-  else if(base==="C")reco="Votre profil vous donne une vraie marge de manœuvre pour **acheter d'abord** si la bonne opportunité se présente. Votre capacité financière autonome et votre flexibilité logistique vous le permettent — à condition de cadrer précisément votre stratégie de vente en parallèle.";
-  else if(base==="D")reco="Votre situation est équilibrée : ni clairement en faveur de vendre d'abord, ni d'acheter d'abord. C'est le profil qui bénéficie le plus d'une **opération simultanée bien coordonnée** — avec une synchronisation précise des deux transactions.";
-  else reco="Votre situation cumule plusieurs facteurs de complexité qui rendent une recommandation standardisée insuffisante. Plusieurs scénarios sont envisageables selon des variables que seul un entretien approfondi permettra de peser correctement.";
-
-  // ARGUMENTS PERSONNALISÉS
-  const args=[];
-  if(a.bien_dpe==="g")args.push("Votre **DPE G** est aujourd'hui un frein majeur à la vente : les acheteurs exigent des décotes importantes et les délais s'allongent. C'est un facteur déterminant dans votre calendrier.");
-  else if(a.bien_dpe==="ef")args.push("Avec un **DPE E ou F**, votre bien entre dans la catégorie des passoires thermiques. Le marché parisien actuel pénalise ces biens sur le prix et sur le délai — anticipez une négociation.");
-  else if(a.bien_dpe==="abc")args.push("Votre **DPE favorable (A-C)** est un vrai atout de liquidité sur le marché du 12ème. Les biens bien notés se vendent plus vite et se négocient moins.");
-  if(a.bien_prix==="dessus")args.push("**Prix au-dessus du marché** : c'est le risque numéro un d'enlisement. Dans un marché en ajustement comme celui du 12ème, surestimer son bien coûte des semaines — parfois des mois.");
-  else if(a.bien_prix==="sous_marche")args.push("**Prix sous le marché** : votre approche est une force. Elle génère de la concurrence et raccourcit le délai de vente, ce qui sécurise l'ensemble du projet.");
-  if(a.credit_en_cours==="oui_important")args.push("**Crédit important en cours** : le produit de votre vente est indispensable pour boucler votre financement. Toute stratégie d'achat avant vente vous expose à un prêt relais dont le coût peut dépasser 15 000€ sur 12 mois.");
-  if(a.apport_dispo==="oui")args.push("**Apport disponible** : votre autonomie financière hors vente est réelle. C'est ce qui rend un achat préalable envisageable sans mettre en danger votre équilibre.");
-  if(a.hebergement==="non")args.push("**Aucune solution de repli** : dans Paris, trouver une location meublée de transition est difficile et coûteux. Ce facteur plaide pour séquencer l'opération avec soin.");
-  if(a.projet_achat==="trouve")args.push("**Bien en vue** : vous avez déjà identifié une opportunité — ce qui crée une pression temporelle réelle sur votre côté vendeur.");
-  if(a.criteres==="tres_precis")args.push("**Critères très précis** : trouver le bon bien prendra du temps. Attendre d'avoir vendu pour chercher risque de vous exposer à une période de flottement inconfortable.");
-  if(a.stress==="stresse"&&base==="C")args.push("**Profil prudent** : si vous achetez d'abord, assurez-vous d'avoir un plan B clair en cas de délai de vente plus long que prévu.");
-
-  const argsFormatted = args.slice(0,3).map(arg => `• ${arg}`).join("\n");
-
-  // VIGILANCES
-  const vigilances = [];
-  if(noEstimation)vigilances.push("**Estimation indispensable** : votre bien n'a pas encore été estimé par un professionnel — ou cette estimation est trop ancienne. Sans prix de vente réaliste, toute stratégie repose sur du sable. C'est la première chose à faire, avant toute autre décision.");
-  if(sellingPAP)vigilances.push("**Vente en PAP** : dans un marché parisien en mouvement comme le 12ème, gérer sa vente seul peut allonger les délais et complexifier les négociations — deux facteurs qui pèsent sur l'ensemble du projet.");
-  vigilances.push("**Courtier en financement** : contactez un courtier avant de vous engager sur quoi que ce soit. Connaître précisément votre capacité d'emprunt — avec ou sans le produit de votre vente — est indispensable pour négocier sereinement des deux côtés.");
-
-  // ACTIONS
-  let actionsList = [];
-  if(base==="B"){
-    actionsList=[
-      "Faites réaliser une **estimation sérieuse** de votre bien dans les 15 prochains jours — pas une estimation en ligne, une vraie visite avec un agent du secteur.",
-      "Définissez votre **prix de mise en vente** avec une marge de négociation intégrée dès le départ — pas en partant haut pour baisser ensuite.",
-      "Préparez vos **diagnostics immobiliers** maintenant — DPE, amiante, électricité — pour ne pas perdre de temps une fois le mandat signé."
-    ];
-  } else if(base==="C"){
-    actionsList=[
-      "Faites simuler votre **capacité d'emprunt maximale** sans le produit de vente — c'est votre vrai plafond d'achat autonome.",
-      "Préparez votre **dossier de vente en parallèle** : estimation, diagnostics, photos — pour pouvoir mettre sur le marché rapidement dès que vous aurez signé un compromis d'achat.",
-      "Identifiez précisément le **délai entre votre signature achat et votre besoin de fonds** — c'est la fenêtre dans laquelle votre vente doit se conclure."
-    ];
-  } else if(base==="D"){
-    actionsList=[
-      "Posez une **date cible de déménagement** et travaillez à rebours : c'est le seul moyen de synchroniser les deux transactions.",
-      "Mandatez un **agent capable de gérer les deux côtés** — la coordination est la clé d'une opération simultanée réussie.",
-      "Prévoyez si possible une **clause de condition suspensive croisée** — cela sécurise les deux transactions l'une par rapport à l'autre."
-    ];
-  } else {
-    actionsList=[
-      "Listez par ordre de priorité vos **contraintes non-négociables** (financières, logistiques, timing).",
-      "Faites **estimer votre bien** avant tout autre démarche — c'est la donnée qui manque pour trancher.",
-      "Consultez un **expert du marché local** pour arbitrer entre les scénarios possibles."
-    ];
+  // ── VIGILANCES ──
+  html+=mT('⚠️','Points de vigilance',true);
+  const vigs=[];
+  if(est==='non')vigs.push({p:10,id:'estimation',text:"**Pas d'estimation récente** — le prix de vente réel de votre bien est inconnu. Sans elle, ni votre budget d'achat ni votre calendrier ne peuvent être calibrés avec fiabilité."});
+  else if(est==='oui_ancienne')vigs.push({p:8,id:'estimation_old',text:"**Estimation datée (plus d'un an)** — le marché du 12ème a évolué depuis. La valeur actuelle de votre bien pourrait être sensiblement différente."});
+  vigs.push({p:7,id:'courtier',text:"**Capacité d'emprunt non simulée** — sans simulation précise par un courtier (avec et sans le produit de la vente), le budget d'achat réellement accessible reste hypothétique."});
+  if(base==='B'){
+    if(heb==='non')vigs.push({p:9,id:'repli',text:"**Aucune solution de repli logistique** — vous ne pouvez pas finaliser la vente de votre bien sans avoir au minimum signé un compromis d'achat. Trois approches existent :<br><br>① <strong>Vente longue</strong> : mettre en vente avec un délai de réalisation allongé (5 à 6 mois), pour avoir le temps de trouver et signer un compromis d'achat avant de finaliser. C'est la solution la plus sécurisante — mais elle réduit le nombre d'acheteurs potentiels.<br><br>② <strong>Achat sous condition suspensive de vente</strong> : trouver d'abord le bien à acheter et négocier une clause conditionnant l'achat à la vente du bien actuel. Difficile à obtenir — les vendeurs préfèrent un acheteur sans condition — mais ça existe, surtout sur des biens moins en tension.<br><br>③ <strong>Location de transition</strong> : vendre, se loger temporairement en meublé courte durée, puis acheter. Option la moins confortable (double déménagement, frais, tension locative parisienne) mais réalisable si les deux premières ne sont pas accessibles."});
+    else if(heb==='location')vigs.push({p:5,id:'repli_loc',text:"**Logistique de transition incertaine** — une location temporaire à Paris implique souvent un double déménagement, des délais de recherche et des frais d'agence. Ce scénario est moins simple qu'il n'y paraît."});
+    if(achat==='trouve')vigs.push({p:8,id:'opp',text:"**Opportunité d'achat identifiée sous pression temporelle** — si vous vendez d'abord, le bien que vous avez en vue risque d'être vendu à un autre acquéreur avant que votre vente ne soit finalisée."});
+    if(crit==='tres_precis')vigs.push({p:5,id:'criteres',text:"**Recherche d'achat exigeante** — des critères très précis allongent mécaniquement la durée de recherche. Une fois la vente conclue, la période sans logement fixe pourrait durer plus longtemps que prévu."});
+    if(dpe==='ef'||dpe==='g')vigs.push({p:6,id:'dpe_v',text:`**Délai de vente potentiellement long** (DPE ${dpe==='g'?'G':'E-F'}) — les acheteurs exercent une pression à la baisse sur les passoires thermiques. La vente pourrait prendre plus de temps que la moyenne.`});
+    if(prix==='dessus')vigs.push({p:5,id:'prix_v',text:"**Prix ambitieux** — un bien affiché au-dessus du marché génère statistiquement des délais de vente plus longs. Chaque semaine de retard impacte le calendrier global de l'opération."});
+  }else if(base==='C'){
+    if(credit==='oui_important')vigs.push({p:8,id:'credit',text:"**Crédit important en cours** — si la vente prend plus de temps que prévu, la période de portage simultané peut s'avérer financièrement lourde."});
+    if(dpe==='ef'||dpe==='g')vigs.push({p:7,id:'dpe_c',text:`**Vente potentiellement longue** (DPE ${dpe==='g'?'G':'E-F'}) — si votre bien met plus de temps à se vendre, la période de portage financier s'en trouve allongée d'autant.`});
+    if(prix==='dessus')vigs.push({p:6,id:'prix_c',text:"**Prix au-dessus du marché** — si le délai de vente s'allonge, le coût du portage financier augmente en proportion."});
+    if(heb==='location')vigs.push({p:4,id:'location_c',text:"**Solution logistique à confirmer** — une location temporaire à Paris est difficile à trouver rapidement et implique un double déménagement."});
+  }else if(base==='D'){
+    vigs.push({p:9,id:'simul',text:"**Opération simultanée : complexité maximale** — un décalage même limité entre les deux signatures peut générer des difficultés financières ou logistiques. C'est le scénario le plus exigeant du marché."});
+    if(heb==='non')vigs.push({p:8,id:'repli_d',text:"**Aucun filet logistique** — en cas de décalage entre les deux transactions, aucune solution d'hébergement temporaire n'est identifiée à ce stade."});
+    if(credit==='oui_important')vigs.push({p:6,id:'credit_d',text:"**Financement sous tension** — le crédit en cours complique le montage financier d'une opération simultanée."});
   }
-  const actionsFormatted = actionsList.map((a,i) => `${i+1}. ${a}`).join("\n");
+  vigs.sort((x,y)=>y.p-x.p);
+  vigs.forEach(v=>{ html+=mBull(v.text,'#d97706'); });
 
-  const invite="Cette analyse est un premier cadrage basé sur vos déclarations. Une conversation de 20 minutes avec un expert du terrain — qui connaît les délais réels de vente dans le 12ème, les mécanismes de financement et les pièges à éviter — peut transformer radicalement votre approche. C'est exactement ce que je propose.";
+  // ── ACTIONS ──
+  html+=mT('✅','Vos 3 actions prioritaires');
+  const actions=[];
+  const vigIds=vigs.map(v=>v.id);
+  if(vigIds.includes('estimation'))actions.push("Faites réaliser une **estimation professionnelle** de votre bien dans les 15 prochains jours — une vraie visite avec un agent du secteur, pas en ligne. Sans prix réaliste, aucune stratégie ne tient.");
+  else if(vigIds.includes('estimation_old'))actions.push("Faites **actualiser votre estimation** auprès d'un agent connaissant le marché actuel du 12ème — les conditions ont évolué depuis votre dernière évaluation.");
+  else actions.push("Vérifiez que votre **prix de mise en vente** est cohérent avec le marché actuel du 12ème — une légère surestimation peut coûter plusieurs semaines de délai.");
+  actions.push("Contactez un **courtier en financement** pour simuler votre capacité d'emprunt précise, avec et sans le produit de votre vente — c'est le pilier de toute stratégie solide.");
+  const mainVig=vigs.filter(v=>!['estimation','estimation_old','courtier'].includes(v.id))[0];
+  if(mainVig){
+    const id=mainVig.id;
+    if(id==='repli')actions.push("**Choisissez et planifiez votre approche logistique** parmi les trois options décrites dans les points de vigilance. Quelle que soit l'option retenue, ne signez pas d'acte de vente définitif sans avoir au préalable sécurisé votre prochain logement.");
+    else if(id==='repli_loc')actions.push("**Planifiez concrètement votre transition logistique** : anticipez les délais de recherche d'une location temporaire à Paris (souvent 4 à 8 semaines), le coût réel et la contrainte du double déménagement.");
+    else if(id==='opp')actions.push("**Évaluez la disponibilité du vendeur** du bien identifié : s'il peut vous accorder un délai compatible avec votre calendrier de vente, la stratégie recommandée reste tenable. Sinon, la décision mérite d'être réévaluée.");
+    else if(id==='criteres')actions.push("**Commencez les visites dès maintenant**, en parallèle de la mise en vente — même sans pouvoir concrétiser immédiatement, vous affinez vos critères et réduisez le délai de décision le moment venu.");
+    else if(id==='dpe_v'||id==='dpe_c')actions.push("**Intégrez un délai de vente réaliste** dans votre planification — pour un bien avec ce DPE, anticipez 3 à 6 mois minimum. Calibrez votre stratégie en conséquence.");
+    else if(id==='prix_v'||id==='prix_c')actions.push("**Calibrez votre prix de vente avec une marge de négociation intégrée dès le départ** — partez d'un prix cohérent avec le marché plutôt qu'en partant haut pour baisser ensuite, stratégie qui allonge les délais.");
+    else if(id==='credit'||id==='credit_d')actions.push("**Modélisez le scénario de portage** avec votre courtier : quel coût mensuel si vous portez les deux crédits pendant 3, 6 ou 9 mois ? Cette simulation vous donnera la limite au-delà de laquelle la stratégie devient trop risquée.");
+    else if(id==='simul')actions.push("**Fixez une date cible de déménagement** et travaillez à rebours pour synchroniser les deux transactions — chaque semaine de décalage non anticipé augmente le risque.");
+    else if(id==='repli_d')actions.push("**Identifiez une solution d'hébergement de secours** avant d'aller plus loin — même temporaire, elle constitue le filet de sécurité indispensable d'une opération simultanée.");
+    else actions.push("**Consultez un expert du marché local** pour arbitrer les scénarios possibles et sécuriser chaque étape de l'opération.");
+  }else{
+    actions.push("Préparez vos **diagnostics immobiliers** maintenant (DPE, amiante, électricité) — ces démarches prennent souvent plus de temps que prévu.");
+  }
+  actions.forEach((act,i)=>{ html+=mNum(i+1,act); });
 
-  const vigilancesSection = vigilances.length > 0 ? `\n⚠️ Points de vigilance\n\n${vigilances.map(v=>`• ${v}`).join("\n")}` : "";
-
-  return `🎯 Notre analyse\n\n${accroche}\n\n---\n\n📊 Votre profil\n\n${reco}\n\n---\n\n💡 Pourquoi cette stratégie ?\n\n${argsFormatted}${vigilancesSection}\n\n---\n\n✅ Vos 3 actions prioritaires\n\n${actionsFormatted}\n\n---\n\n💬 La suite\n\n${invite}`;
+  // ── LA SUITE ──
+  html+=mT('💬','La suite');
+  let suite='';
+  if(isContraint)suite="Votre situation est l'une des plus délicates du marché : vous devez vendre pour des raisons financières, mais vous ne pouvez pas vous retrouver sans logement. Ce type d'opération se pilote à la semaine près. Une conversation de 20 minutes avec un expert qui connaît précisément le marché du 12ème — délais réels, clauses à négocier, mécanismes pour sécuriser les deux transactions en parallèle — peut faire toute la différence entre une opération maîtrisée et une situation subie.";
+  else if(base==='D'||base==='E')suite="Cette analyse identifie une situation qui demande une coordination experte. Une conversation de 20 minutes avec un agent connaissant précisément le marché du 12ème — délais réels de vente, mécanismes de financement, clauses à négocier — peut faire toute la différence entre une opération réussie et une situation subie.";
+  else suite="Cette analyse est un premier cadrage basé sur vos déclarations. Une conversation de 20 minutes avec un expert du terrain — qui connaît les délais réels de vente dans le 12ème, les mécanismes de financement et les pièges à éviter — peut transformer radicalement votre approche.";
+  html+=mB(suite);
+  return html;
 }
 
-function getProfileBadge(p){
-  return{
-    B:{text:"Vendeur en priorité",bg:"#fff3e0",color:"#b36200",border:"#f9a825"},
-    B_challenge:{text:"Vendeur en priorité",bg:"#fff3e0",color:"#b36200",border:"#f9a825"},
-    C:{text:"Acheteur en priorité",bg:G.greenBg,color:G.greenDark,border:G.green},
-    C_challenge:{text:"Acheteur en priorité",bg:G.greenBg,color:G.greenDark,border:G.green},
-    D:{text:"Opération simultanée",bg:"#e8f4fd",color:"#1565c0",border:"#42a5f5"},
-    E:{text:"Situation complexe",bg:G.dangerBg,color:G.danger,border:G.danger},
-  }[p]||{text:"",bg:G.greenBg,color:G.green,border:G.green};
+function bold(s){return s.replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:700;">$1</strong>');}
+function mT(emoji,text,warn=false){const bg=warn?'#fffbeb':'#f0faf5',bc=warn?'#fde68a':G.greenBorder,col=warn?'#92400e':'#166534';return`<div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px;padding:7px 10px;border-radius:6px;background:${bg};border:1px solid ${bc};"><span style="font-size:14px;">${emoji}</span><span style="color:${col};font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">${text}</span></div>`;}
+function mB(text){return`<p style="color:${G.text};font-size:14px;line-height:1.8;margin:0 0 8px;">${bold(text)}</p>`;}
+function mBull(text,col='#00A948'){return`<div style="display:flex;gap:8px;margin-bottom:9px;padding-left:2px;"><span style="color:${col};font-weight:700;flex-shrink:0;margin-top:3px;font-size:13px;">•</span><span style="color:${G.text};font-size:13px;line-height:1.75;">${bold(text)}</span></div>`;}
+function mNum(n,text){return`<div style="display:flex;gap:10px;margin-bottom:10px;padding-left:2px;"><span style="color:${G.green};font-weight:700;font-size:14px;min-width:16px;flex-shrink:0;">${n}.</span><span style="color:${G.text};font-size:13px;line-height:1.75;">${bold(text)}</span></div>`;}
+
+// ─── TOKEN ─────────────────────────────────────────────────────
+function makeToken(data){const p=btoa(unescape(encodeURIComponent(JSON.stringify({...data,ts:Date.now()}))));return p.replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+function parseToken(token){try{const b=token.replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(b))));}catch{return null;}}
+
+// ─── APP ───────────────────────────────────────────────────────
+function App(){
+  const urlParams=new URLSearchParams(window.location.search);
+  const tokenParam=urlParams.get('token');
+  if(tokenParam)return <ResultPage token={tokenParam}/>;
+  return <Simulateur/>;
 }
 
-function makeToken(data){
-  const payload=btoa(unescape(encodeURIComponent(JSON.stringify({...data,ts:Date.now()}))));
-  return payload.replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
-}
-function parseToken(token){
-  try{const b64=token.replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent(escape(atob(b64))));}catch{return null;}
-}
-
-// Header commun
-function Header({showLogo=false}){
-  return(
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 24px",borderBottom:`1px solid ${G.greenBorder}`,background:G.white}}>
-      {showLogo
-        ?<img src={LOGO_SRC} alt="Dans le 12" style={{height:80,width:"auto"}}/>
-        :<div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:G.green}}/>
-          <span style={{color:G.green,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase"}}>Dans le 12 · Paris 12ème</span>
-        </div>
-      }
-      <span style={{color:G.textLight,fontSize:11,fontFamily:"monospace"}}>simulateur.dansle12.fr</span>
-    </div>
-  );
-}
-
-// Bouton principal
-function Btn({onClick,disabled,children,full,variant="primary",small}){
-  const bg=variant==="primary"?G.green:variant==="wa"?"#25d366":G.white;
-  const col=variant==="primary"||variant==="wa"?G.white:G.green;
-  const bord=variant==="ghost"?`1px solid ${G.greenBorder}`:"none";
-  return(
-    <button onClick={onClick} disabled={disabled} style={{
-      display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-      width:full?"100%":"auto",
-      padding:small?"10px 20px":"15px 32px",
-      background:disabled?"#e0e0e0":bg,
-      color:disabled?"#aaa":col,
-      border:bord,borderRadius:10,
-      fontSize:small?13:15,fontWeight:600,
-      cursor:disabled?"not-allowed":"pointer",
-      letterSpacing:"0.02em",transition:"opacity 0.2s",
-    }}>
-      {children}
-    </button>
-  );
-}
-
-// ── PAGE RÉSULTAT ──────────────────────────────
+// ─── PAGE RÉSULTAT ─────────────────────────────────────────────
 function ResultPage({token}){
   const[data,setData]=useState(null);
   const[err,setErr]=useState(false);
@@ -358,152 +361,99 @@ function ResultPage({token}){
   },[token]);
 
   if(err)return(
-    <div style={{minHeight:"100vh",background:G.white}}>
+    <div style={{minHeight:'100vh',background:G.white}}>
       <Header/>
-      <div style={{maxWidth:480,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-        <div style={{fontSize:48,marginBottom:20}}>⏳</div>
-        <h1 style={{color:G.text,fontSize:22,fontWeight:600,margin:"0 0 12px"}}>Lien expiré</h1>
-        <p style={{color:G.textMuted,fontSize:14,fontWeight:400,lineHeight:1.7,margin:"0 0 28px"}}>Ce lien n'est valable que 48h. Refaites le simulateur pour obtenir une nouvelle analyse.</p>
-        <Btn onClick={()=>window.location.href=BASE_URL}>← Refaire l'analyse</Btn>
+      <div style={{maxWidth:480,margin:'80px auto',padding:'0 24px',textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:24}}>⏳</div>
+        <h1 style={{color:G.text,fontSize:22,fontWeight:600,margin:'0 0 12px'}}>Lien expiré</h1>
+        <p style={{color:G.textMuted,fontSize:14,lineHeight:1.7,margin:'0 0 28px'}}>Ce lien n'est valable que 48h. Refaites le simulateur pour obtenir une nouvelle analyse.</p>
+        <a href={BASE_URL} style={{display:'inline-block',padding:'14px 28px',background:G.green,color:'#fff',borderRadius:8,textDecoration:'none',fontWeight:700,fontSize:14}}>← Refaire l'analyse</a>
       </div>
     </div>
   );
+  if(!data)return(<div style={{minHeight:'100vh',background:G.white,display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{color:G.textMuted,fontSize:13}}>Chargement...</div></div>);
 
-  if(!data)return(
-    <div style={{minHeight:"100vh",background:G.white,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{color:G.textMuted,fontSize:13,fontWeight:400}}>Chargement...</div>
-    </div>
-  );
-
-  const badge=getProfileBadge(data.profile);
-  const total=data.vendreScore+data.acheterScore;
-  const pv=Math.round((data.vendreScore/(total||1))*100);
-  const pa=Math.round((data.acheterScore/(total||1))*100);
-  const challenged=data.profile.includes("_challenge");
-  const intuitionLabel=data.intuition==="sell_first"?"Vendre d'abord":data.intuition==="buy_first"?"Acheter d'abord":null;
+  const profileBadges={B:{text:"Vendeur en priorité",bg:'#fff3e0',color:'#92400e',border:'#f59e0b'},B_challenge:{text:"Vendeur en priorité",bg:'#fff3e0',color:'#92400e',border:'#f59e0b'},C:{text:"Acheteur en priorité",bg:G.greenBg,color:G.greenDark,border:G.green},C_challenge:{text:"Acheteur en priorité",bg:G.greenBg,color:G.greenDark,border:G.green},D:{text:"Simultanément",bg:'#e8f4fd',color:'#1565c0',border:'#42a5f5'},E:{text:"Situation complexe",bg:G.dangerBg,color:G.danger,border:G.danger}};
+  const pb=profileBadges[data.profile]||{text:"",bg:G.greenBg,color:G.green,border:G.green};
+  const isRedFlag=data.isContraint;
 
   return(
-    <div style={{minHeight:"100vh",background:G.greenBg}}>
+    <div style={{minHeight:'100vh',background:G.greenBg}}>
       <Header/>
-      <div style={{maxWidth:640,margin:"0 auto",padding:"32px 24px 60px"}}>
+      <div style={{maxWidth:640,margin:'0 auto',padding:'32px 24px 60px'}}>
+        <h1 style={{color:G.text,fontSize:'clamp(22px,4vw,30px)',fontWeight:600,margin:'0 0 6px',lineHeight:1.25}}>Votre recommandation personnalisée</h1>
+        <p style={{color:G.textMuted,fontSize:13,margin:'0 0 24px'}}>Basée sur vos réponses au simulateur Acquéreur-Vendeur — Dans le 12</p>
 
-        {/* Badge profil */}
-        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:badge.bg,border:`1px solid ${badge.border}`,borderRadius:20,padding:"6px 16px",marginBottom:20}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:badge.color}}/>
-          <span style={{color:badge.color,fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>{badge.text}</span>
-        </div>
-
-        <h1 style={{color:G.text,fontSize:"clamp(22px,4vw,30px)",fontWeight:600,margin:"0 0 8px",lineHeight:1.25}}>Votre recommandation personnalisée</h1>
-        <p style={{color:G.textMuted,fontSize:14,fontWeight:400,margin:"0 0 28px"}}>Basée sur vos réponses au simulateur Acquéreur-Vendeur — Dans le 12</p>
-
-        {/* Challenge banner */}
-        {challenged&&(
-          <div style={{display:"flex",gap:12,padding:"14px 18px",background:G.dangerBg,border:`1px solid ${G.danger}40`,borderRadius:10,marginBottom:24}}>
-            <span style={{fontSize:18}}>⚠️</span>
-            <div style={{color:G.danger,fontSize:13,fontWeight:400,lineHeight:1.6}}>
-              <strong>Note :</strong> Votre intuition initiale était <em>"{intuitionLabel}"</em> — l'analyse de votre profil suggère une approche différente. Lisez attentivement les raisons ci-dessous.
-            </div>
+        {/* JAUGE */}
+        <div style={{background:G.white,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:'20px 24px',marginBottom:24}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <span style={{color:'#92400e',fontSize:11,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}>Vendre d'abord</span>
+            <span style={{color:'#166634',fontSize:10,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase'}}>Simultanément</span>
+            <span style={{color:'#15803d',fontSize:11,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}>Acheter d'abord</span>
           </div>
-        )}
-
-        {/* Scores */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}}>
-          {[{label:"Vendre d'abord",pct:pv,color:"#f59e0b"},{label:"Acheter d'abord",pct:pa,color:G.green}].map(({label,pct,color})=>(
-            <div key={label} style={{padding:"20px",background:G.white,border:`1px solid ${G.greenBorder}`,borderRadius:12,boxShadow:"0 1px 4px rgba(0,169,72,0.06)"}}>
-              <div style={{color:G.textLight,fontSize:10,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:8}}>{label}</div>
-              <div style={{color,fontSize:32,fontWeight:700,fontFamily:"monospace",marginBottom:10}}>{pct}%</div>
-              <div style={{height:4,background:G.greenBorder,borderRadius:2}}>
-                <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2,transition:"width 1s ease"}}/>
+          <div style={{position:'relative',height:16,borderRadius:8,overflow:'visible',marginBottom:16}}>
+            <div style={{position:'absolute',inset:0,borderRadius:8,background:'linear-gradient(to right,#92400e 0%,#fbbf24 28%,#9DFCC7 42%,#9DFCC7 58%,#4ade80 72%,#15803d 100%)'}}/>
+            <div style={{position:'absolute',left:`${data.cursorPos}%`,top:'50%',transform:'translate(-50%,-50%)',width:24,height:24,borderRadius:'50%',background:data.profile.startsWith('B')||data.profile==='E'?'#92400e':'#15803d',border:'3px solid #fff',boxShadow:'0 2px 8px rgba(0,0,0,0.2)',zIndex:2}}/>
+          </div>
+          <div style={{textAlign:'center',marginBottom: isRedFlag?12:0}}>
+            <span style={{display:'inline-block',background:pb.bg,border:`1.5px solid ${pb.border}`,borderRadius:24,padding:'10px 28px',color:pb.color,fontSize:20,fontWeight:700}}>{pb.text}</span>
+          </div>
+          {isRedFlag&&(
+            <div style={{display:'flex',alignItems:'flex-start',gap:10,background:'#fef2f2',border:'1.5px solid #fca5a5',borderRadius:8,padding:'10px 14px',marginTop:12}}>
+              <span style={{fontSize:16,flexShrink:0}}>🚨</span>
+              <div>
+                <div style={{color:'#991b1b',fontSize:11,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}}>Timing critique — attention</div>
+                <div style={{color:'#7f1d1d',fontSize:11,lineHeight:1.6}}>Vendre d'abord est recommandé, mais l'absence de solution de repli impose que <strong>les deux opérations soient menées quasi-simultanément</strong>. Vous ne pouvez pas finaliser la vente sans avoir sécurisé votre prochain logement.</div>
               </div>
             </div>
-          ))}
+          )}
         </div>
 
-        {/* Recommandation */}
-        <div style={{background:G.white,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:"28px",marginBottom:24,boxShadow:"0 1px 4px rgba(0,169,72,0.06)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${G.greenBorder}`}}>
-            <div style={{width:32,height:32,background:G.greenBg,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🧠</div>
-            <div>
-              <div style={{color:G.text,fontSize:13,fontWeight:600}}>Analyse personnalisée</div>
-              <div style={{color:G.textLight,fontSize:11,fontWeight:400}}>Générée à partir de vos 16 réponses</div>
-            </div>
-          </div>
-          {(() => {
-            const renderRec = (text) => {
-              return text.split("\n").map((line, i) => {
-                // Titres avec emoji
-                if(/^[🎯📊💡⚠️✅💬]/.test(line) && line.includes(" ")) {
-                  return <div key={i} style={{color:G.green,fontSize:13,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",margin:"20px 0 8px",paddingBottom:6,borderBottom:`1px solid ${G.greenBorder}`}}>{line}</div>;
-                }
-                // Séparateur
-                if(line==="---") return <div key={i} style={{height:1,background:G.greenBorder,margin:"4px 0"}}/>;
-                // Ligne vide
-                if(line.trim()==="") return <div key={i} style={{height:8}}/>;
-                // Rendre le gras **texte**
-                const parts = line.split(/\*\*([^*]+)\*\*/g);
-                const rendered = parts.map((p,j) => j%2===1 ? <strong key={j} style={{fontWeight:700,color:G.text}}>{p}</strong> : p);
-                // Actions numérotées
-                if(/^\d\./.test(line)) {
-                  return <div key={i} style={{display:"flex",gap:10,marginBottom:8,paddingLeft:4}}>
-                    <span style={{color:G.green,fontWeight:700,minWidth:16}}>{line[0]}.</span>
-                    <span style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.75}}>{parts.map((p,j)=>j%2===1?<strong key={j} style={{fontWeight:700}}>{p}</strong>:p)}</span>
-                  </div>;
-                }
-                // Bullet points
-                if(line.startsWith("• ")) {
-                  const bulletParts = line.slice(2).split(/\*\*([^*]+)\*\*/g);
-                  return <div key={i} style={{display:"flex",gap:8,marginBottom:8,paddingLeft:4}}>
-                    <span style={{color:G.green,fontWeight:700,marginTop:2}}>•</span>
-                    <span style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.75}}>{bulletParts.map((p,j)=>j%2===1?<strong key={j} style={{fontWeight:700}}>{p}</strong>:p)}</span>
-                  </div>;
-                }
-                // Texte normal
-                return <div key={i} style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.75,marginBottom:4}}>{rendered}</div>;
-              });
-            };
-            return <div>{renderRec(data.rec)}</div>;
-          })()}
-        </div>
+        {/* RECOMMANDATION */}
+        <div style={{background:G.white,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:'28px',marginBottom:28}} dangerouslySetInnerHTML={{__html:data.rec}}/>
 
-        {/* CTA WhatsApp */}
-        <div style={{background:G.white,border:`2px solid ${G.green}`,borderRadius:12,padding:"28px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,169,72,0.12)"}}>
-          <img src={LOGO_SRC} alt="Dans le 12" style={{height:56,width:"auto",marginBottom:16}}/>
-          <h3 style={{color:G.text,fontSize:17,fontWeight:600,margin:"0 0 8px"}}>Aller plus loin avec Olivier</h3>
-          <p style={{color:G.textMuted,fontSize:13,fontWeight:400,margin:"0 0 20px",lineHeight:1.7}}>
-            Cette analyse est un premier éclairage. Une conversation de 20 minutes avec un expert du 12ème peut changer radicalement votre stratégie.
-          </p>
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
-            style={{display:"inline-flex",alignItems:"center",gap:10,padding:"14px 28px",background:"#25d366",color:G.white,borderRadius:10,textDecoration:"none",fontWeight:600,fontSize:14,fontFamily:"'Montserrat',sans-serif"}}>
+        {/* CTA */}
+        <div style={{background:G.white,border:`2px solid ${G.green}`,borderRadius:12,padding:'28px',textAlign:'center',boxShadow:`0 2px 12px rgba(0,169,72,0.12)`}}>
+          <img src={LOGO_SRC} alt="Dans le 12" style={{height:56,width:'auto',marginBottom:16}}/>
+          <h3 style={{color:G.text,fontSize:17,fontWeight:600,margin:'0 0 8px'}}>Aller plus loin avec Olivier</h3>
+          <p style={{color:G.textMuted,fontSize:13,margin:'0 0 20px',lineHeight:1.7}}>Une conversation de 20 minutes avec un expert du 12ème peut changer radicalement votre stratégie.</p>
+          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:10,padding:'14px 28px',background:'#25d366',color:'#fff',borderRadius:10,textDecoration:'none',fontWeight:600,fontSize:14}}>
             <img src={WA_SRC} alt="WhatsApp" style={{width:22,height:22,borderRadius:4}}/>
             Contacter Olivier sur WhatsApp
           </a>
-          <div style={{color:G.textLight,fontSize:11,fontWeight:400,marginTop:14}}>Agent immobilier · Paris 12ème · Dans le 12 · Abriculteurs</div>
+          <div style={{color:G.textLight,fontSize:11,marginTop:12}}>Agent immobilier · Paris 12ème · Dans le 12 · Abriculteurs</div>
         </div>
-
-        <div style={{textAlign:"center",marginTop:24}}>
-          <a href={BASE_URL} style={{color:G.textLight,fontSize:13,fontWeight:400,textDecoration:"none"}}>↺ Refaire l'analyse</a>
-        </div>
+        <div style={{textAlign:'center',marginTop:24}}><a href={BASE_URL} style={{color:G.textLight,fontSize:13,textDecoration:'none'}}>↺ Refaire l'analyse</a></div>
       </div>
     </div>
   );
 }
 
-// ── SIMULATEUR ─────────────────────────────────
+// ─── COMPOSANTS ────────────────────────────────────────────────
+function Header({showLogo=false}){
+  return(
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 24px',borderBottom:`1px solid ${G.greenBorder}`,background:G.white}}>
+      {showLogo?<img src={LOGO_SRC} alt="Dans le 12" style={{height:80,width:'auto'}}/>
+        :<div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:8,height:8,borderRadius:'50%',background:G.green}}/><span style={{color:G.green,fontSize:11,fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase'}}>Dans le 12 · Paris 12ème</span></div>}
+      <span style={{color:G.textLight,fontSize:11,fontFamily:'monospace'}}>simulateur.dansle12.fr</span>
+    </div>
+  );
+}
+
+// ─── SIMULATEUR ────────────────────────────────────────────────
 function Simulateur(){
   const[step,setStep]=useState(0);
   const[answers,setAnswers]=useState({});
-  const[email,setEmail]=useState("");
+  const[email,setEmail]=useState('');
   const[emailValid,setEmailValid]=useState(false);
   const[loading,setLoading]=useState(false);
   const[animating,setAnimating]=useState(false);
   const inputRef=useRef(null);
-
   const total=questions.length;
   const currentQ=step>=1&&step<=total?questions[step-1]:null;
   const progress=step>=1&&step<=total?((step-1)/total)*100:0;
   const currentBlock=currentQ?currentQ.block:null;
   const blockProgress=blockOrder.indexOf(currentBlock);
-
   const validateEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
   const handleAnswer=value=>{
@@ -517,193 +467,139 @@ function Simulateur(){
     if(!emailValid||loading)return;
     setLoading(true);
     const sc=scoreProfile(answers);
-    const rec=generateRec(answers,sc);
-    const t=sc.vendreScore+sc.acheterScore;
-    const tokenData={profile:sc.profile,profil_label:sc.profil_label,vendreScore:sc.vendreScore,acheterScore:sc.acheterScore,intuition:sc.intuition,rec,ts:Date.now()};
+    const rec=generateRec(sc);
+    const tokenData={profile:sc.profile,profil_label:sc.profil_label,vendreScore:sc.vendreScore,acheterScore:sc.acheterScore,pctV:sc.pctV,pctA:sc.pctA,cursorPos:sc.cursorPos,intuition:sc.intuition,isContraint:sc.isContraint,rec,ts:Date.now()};
     const token=makeToken(tokenData);
     const verifyLink=`${BASE_URL}?token=${token}`;
-
-    // Webhook Make (Sheets)
-    fetch(WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      email,
-      intuition:h("intuition",answers.intuition),bien_type:h("bien_type",answers.bien_type),bien_etat:h("bien_etat",answers.bien_etat),
-      bien_dpe:h("bien_dpe",answers.bien_dpe),bien_prix:h("bien_prix",answers.bien_prix),estimation:h("estimation",answers.estimation),
-      avancement_vente:h("avancement_vente",answers.avancement_vente),credit_en_cours:h("credit_en_cours",answers.credit_en_cours),
-      apport_dispo:h("apport_dispo",answers.apport_dispo),relais:h("relais",answers.relais),hebergement:h("hebergement",answers.hebergement),
-      projet_achat:h("projet_achat",answers.projet_achat),criteres:h("criteres",answers.criteres),timing:h("timing",answers.timing),
-      stress:h("stress",answers.stress),priorite:h("priorite",answers.priorite),
-      profil:sc.profile,profil_label:sc.profil_label,
-      score_vendre:Math.round((sc.vendreScore/(t||1))*100),score_acheter:Math.round((sc.acheterScore/(t||1))*100),
-      complexite:sc.complexite,intuition_challengee:sc.profile.includes("challenge")?"Oui":"Non",qualification:sc.qualification,
+    fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      email,intuition:h('intuition',answers.intuition),bien_type:h('bien_type',answers.bien_type),bien_etat:h('bien_etat',answers.bien_etat),bien_dpe:h('bien_dpe',answers.bien_dpe),bien_prix:h('bien_prix',answers.bien_prix),estimation:h('estimation',answers.estimation),avancement_vente:h('avancement_vente',answers.avancement_vente),credit_en_cours:h('credit_en_cours',answers.credit_en_cours),apport_dispo:h('apport_dispo',answers.apport_dispo),relais:h('relais',answers.relais),hebergement:h('hebergement',answers.hebergement),projet_achat:h('projet_achat',answers.projet_achat),criteres:h('criteres',answers.criteres),timing:h('timing',answers.timing),stress:h('stress',answers.stress),priorite:h('priorite',answers.priorite),profil:sc.profile,profil_label:sc.profil_label,score_vendre:sc.pctV,score_acheter:sc.pctA,complexite:sc.complexite,intuition_challengee:sc.profile.includes('challenge')?'Oui':'Non',qualification:sc.qualification,
     })}).catch(()=>{});
-
-    // EmailJS
-    try{
-      await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{to_email:email,verify_link:verifyLink,profil_label:sc.profil_label},EMAILJS_PUBLIC_KEY);
-    }catch(e){console.error("EmailJS:",e);}
-
+    try{await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{to_email:email,verify_link:verifyLink,profil_label:sc.profil_label},EMAILJS_PUBLIC_KEY);}catch(e){console.error('EmailJS:',e);}
     setLoading(false);
     setStep(total+2);
   };
 
-  const reset=()=>{setStep(0);setAnswers({});setEmail("");};
+  const reset=()=>{setStep(0);setAnswers({});setEmail('');};
 
-  // ── LANDING ──
+  // LANDING
   if(step===0)return(
-    <div style={{minHeight:"100vh",background:G.white}}>
-      <div style={{textAlign:"center",padding:"32px 24px 0",borderBottom:`1px solid ${G.greenBorder}`}}>
-        <img src={LOGO_SRC} alt="Dans le 12" style={{height:120,width:"auto",display:"inline-block"}}/>
-        <div style={{color:G.textLight,fontSize:11,fontFamily:"monospace",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:8,paddingBottom:20}}>simulateur.dansle12.fr</div>
+    <div style={{minHeight:'100vh',background:G.white}}>
+      <div style={{textAlign:'center',padding:'32px 24px 0',borderBottom:`1px solid ${G.greenBorder}`}}>
+        <img src={LOGO_SRC} alt="Dans le 12" style={{height:120,width:'auto',display:'inline-block'}}/>
+        <div style={{color:G.textLight,fontSize:11,fontFamily:'monospace',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:8,paddingBottom:20}}>simulateur.dansle12.fr</div>
       </div>
-      <div style={{maxWidth:560,margin:"0 auto",padding:"40px 24px"}}>
-
-        {/* Badge */}
-        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:G.greenBg,border:`1px solid ${G.greenBorder}`,borderRadius:20,padding:"6px 14px",marginBottom:28}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:G.green}}/>
-          <span style={{color:G.greenDark,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase"}}>Outil exclusif · Paris 12ème</span>
+      <div style={{maxWidth:560,margin:'0 auto',padding:'40px 24px'}}>
+        <div style={{display:'inline-flex',alignItems:'center',gap:8,background:G.greenBg,border:`1px solid ${G.greenBorder}`,borderRadius:20,padding:'6px 14px',marginBottom:28}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:G.green}}/>
+          <span style={{color:G.greenDark,fontSize:11,fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase'}}>Outil exclusif · Paris 12ème</span>
         </div>
-
-        <h1 style={{color:G.text,fontSize:"clamp(26px,5vw,42px)",fontWeight:600,lineHeight:1.15,margin:"0 0 8px"}}>
-          Acheter puis vendre —
-        </h1>
-        <h1 style={{color:G.green,fontSize:"clamp(26px,5vw,42px)",fontWeight:400,lineHeight:1.15,margin:"0 0 24px"}}>
-          ou l'inverse ?
-        </h1>
-
-        <p style={{color:G.textMuted,fontSize:15,fontWeight:400,lineHeight:1.75,margin:"0 0 40px"}}>
-          La plupart des acquéreurs-vendeurs pensent connaître la bonne réponse. En réalité, 6 sur 10 sous-estiment au moins un risque majeur dans leur situation.
-        </p>
-
-        <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:40}}>
+        <h1 style={{color:G.text,fontSize:'clamp(26px,5vw,42px)',fontWeight:600,lineHeight:1.15,margin:'0 0 8px'}}>Acheter puis vendre —</h1>
+        <h1 style={{color:G.green,fontSize:'clamp(26px,5vw,42px)',fontWeight:400,lineHeight:1.15,margin:'0 0 24px'}}>ou l'inverse ?</h1>
+        <p style={{color:G.textMuted,fontSize:15,lineHeight:1.75,margin:'0 0 40px'}}>La plupart des acquéreurs-vendeurs pensent connaître la bonne réponse. En réalité, 6 sur 10 sous-estiment au moins un risque majeur dans leur situation.</p>
+        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:40}}>
           {[["⚡","3 minutes","16 questions sur votre situation réelle"],["🧠","Analyse personnalisée","Finance, marché du 12ème et profil psychologique"],["📬","Résultat par email","Votre recommandation complète après confirmation"]].map(([icon,title,desc])=>(
-            <div key={title} style={{display:"flex",alignItems:"flex-start",gap:14,padding:"16px 18px",background:G.greenBg,border:`1px solid ${G.greenBorder}`,borderRadius:10}}>
+            <div key={title} style={{display:'flex',alignItems:'flex-start',gap:14,padding:'16px 18px',background:G.greenBg,border:`1px solid ${G.greenBorder}`,borderRadius:10}}>
               <span style={{fontSize:20,marginTop:1}}>{icon}</span>
-              <div>
-                <div style={{color:G.text,fontSize:14,fontWeight:600,marginBottom:2}}>{title}</div>
-                <div style={{color:G.textMuted,fontSize:13,fontWeight:400}}>{desc}</div>
-              </div>
+              <div><div style={{color:G.text,fontSize:14,fontWeight:600,marginBottom:2}}>{title}</div><div style={{color:G.textMuted,fontSize:13}}>{desc}</div></div>
             </div>
           ))}
         </div>
-
-        <Btn onClick={()=>setStep(1)} full>Analyser ma situation gratuitement →</Btn>
-        <p style={{color:G.textLight,fontSize:12,fontWeight:400,textAlign:"center",marginTop:14}}>Résultat envoyé par email · Aucun spam · Par Olivier — Dans le 12</p>
+        <button onClick={()=>setStep(1)} style={{width:'100%',padding:'18px 32px',background:G.green,color:'#fff',border:'none',borderRadius:10,fontSize:16,fontWeight:700,cursor:'pointer',letterSpacing:'0.02em'}}>Analyser ma situation gratuitement →</button>
+        <p style={{color:G.textLight,fontSize:12,textAlign:'center',marginTop:14}}>Résultat envoyé par email · Aucun spam · Par Olivier — Dans le 12</p>
       </div>
     </div>
   );
 
-  // ── QUESTIONS ──
+  // QUESTIONS
   if(step>=1&&step<=total&&currentQ)return(
-    <div style={{minHeight:"100vh",background:G.white,display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:'100vh',background:G.white,display:'flex',flexDirection:'column'}}>
       <Header/>
-      {/* Progress */}
-      <div style={{height:3,background:G.greenBorder}}>
-        <div style={{height:"100%",width:`${progress}%`,background:G.green,transition:"width 0.4s ease"}}/>
+      <div style={{height:3,background:G.greenBorder}}><div style={{height:'100%',width:`${progress}%`,background:G.green,transition:'width 0.4s ease'}}/></div>
+      <div style={{display:'flex',borderBottom:`1px solid ${G.greenBorder}`,overflowX:'auto',padding:'0 16px'}}>
+        {blockOrder.map((block,i)=>{const isActive=block===currentBlock,isPast=i<blockProgress;return(
+          <div key={block} style={{padding:'10px 14px',fontSize:10,fontWeight:isActive?600:400,letterSpacing:'0.08em',textTransform:'uppercase',color:isActive?G.green:isPast?G.textMuted:G.greenBorder,borderBottom:isActive?`2px solid ${G.green}`:'2px solid transparent',whiteSpace:'nowrap'}}>
+            {isPast?'✓ ':''}{blockLabels[block]}
+          </div>
+        );})}
       </div>
-      {/* Block nav */}
-      <div style={{display:"flex",borderBottom:`1px solid ${G.greenBorder}`,overflowX:"auto",padding:"0 16px"}}>
-        {blockOrder.map((block,i)=>{
-          const isActive=block===currentBlock;
-          const isPast=i<blockProgress;
-          return(
-            <div key={block} style={{padding:"10px 14px",fontSize:10,fontWeight:isActive?600:300,letterSpacing:"0.08em",textTransform:"uppercase",color:isActive?G.green:isPast?G.textMuted:G.greenBorder,borderBottom:isActive?`2px solid ${G.green}`:"2px solid transparent",whiteSpace:"nowrap",transition:"all 0.2s"}}>
-              {isPast?"✓ ":""}{blockLabels[block]}
-            </div>
-          );
-        })}
-      </div>
-      {/* Question */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"32px 24px",opacity:animating?0:1,transform:animating?"translateY(8px)":"translateY(0)",transition:"all 0.25s ease"}}>
-        <div style={{maxWidth:540,width:"100%"}}>
-          <div style={{color:G.textLight,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>{step} / {total}</div>
-          <h2 style={{color:G.text,fontSize:"clamp(17px,3vw,22px)",fontWeight:600,lineHeight:1.4,margin:"0 0 8px"}}>{currentQ.question}</h2>
-          {currentQ.sub&&<p style={{color:G.textMuted,fontSize:13,fontWeight:400,margin:"0 0 28px",lineHeight:1.6}}>{currentQ.sub}</p>}
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'32px 24px',opacity:animating?0:1,transform:animating?'translateY(8px)':'translateY(0)',transition:'all 0.25s ease'}}>
+        <div style={{maxWidth:540,width:'100%'}}>
+          <div style={{color:G.textLight,fontSize:11,fontWeight:600,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:8}}>{step} / {total}</div>
+          <h2 style={{color:G.text,fontSize:'clamp(17px,3vw,22px)',fontWeight:600,lineHeight:1.4,margin:'0 0 8px'}}>{currentQ.question}</h2>
+          {currentQ.sub&&<p style={{color:G.textMuted,fontSize:13,margin:'0 0 28px',lineHeight:1.6}}>{currentQ.sub}</p>}
           {!currentQ.sub&&<div style={{marginBottom:28}}/>}
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
             {currentQ.options.map(opt=>(
               <button key={opt.value} onClick={()=>handleAnswer(opt.value)}
-                style={{display:"flex",alignItems:"center",gap:14,padding:"15px 18px",background:G.white,border:`1.5px solid ${G.greenBorder}`,borderRadius:10,cursor:"pointer",textAlign:"left",width:"100%",transition:"all 0.15s"}}
+                style={{display:'flex',alignItems:'center',gap:14,padding:'15px 18px',background:G.white,border:`1.5px solid ${G.greenBorder}`,borderRadius:10,cursor:'pointer',textAlign:'left',width:'100%',transition:'all 0.15s'}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=G.green;e.currentTarget.style.background=G.greenBg;}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=G.greenBorder;e.currentTarget.style.background=G.white;}}
               >
-                <span style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{opt.icon}</span>
-                <span style={{color:G.text,fontSize:14,fontWeight:400,lineHeight:1.4}}>{opt.label}</span>
+                <span style={{fontSize:20,width:28,textAlign:'center',flexShrink:0}}>{opt.icon}</span>
+                <span style={{color:G.text,fontSize:14,lineHeight:1.4}}>{opt.label}</span>
               </button>
             ))}
           </div>
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:20,background:"none",border:"none",color:G.textLight,cursor:"pointer",fontSize:12,fontWeight:400,padding:0}}>← Retour</button>}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:20,background:'none',border:'none',color:G.textLight,cursor:'pointer',fontSize:12,padding:0}}>← Retour</button>}
         </div>
       </div>
     </div>
   );
 
-  // ── EMAIL CAPTURE ──
+  // EMAIL
   if(step===total+1)return(
-    <div style={{minHeight:"100vh",background:G.white}}>
+    <div style={{minHeight:'100vh',background:G.white}}>
       <Header/>
-      <div style={{maxWidth:480,margin:"0 auto",padding:"60px 24px"}}>
-        <div style={{width:56,height:56,background:G.greenBg,border:`1.5px solid ${G.greenBorder}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,marginBottom:24}}>🧠</div>
-        <h2 style={{color:G.text,fontSize:26,fontWeight:600,margin:"0 0 10px"}}>Votre analyse est prête.</h2>
-        <p style={{color:G.textMuted,fontSize:14,fontWeight:400,lineHeight:1.75,margin:"0 0 32px"}}>
-          Entrez votre email pour recevoir votre recommandation personnalisée. Un lien sécurisé vous sera envoyé pour y accéder.
-        </p>
+      <div style={{maxWidth:480,margin:'0 auto',padding:'60px 24px'}}>
+        <div style={{width:56,height:56,background:G.greenBg,border:`1.5px solid ${G.greenBorder}`,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,marginBottom:24}}>🧠</div>
+        <h2 style={{color:G.text,fontSize:26,fontWeight:600,margin:'0 0 10px'}}>Votre analyse est prête.</h2>
+        <p style={{color:G.textMuted,fontSize:14,lineHeight:1.75,margin:'0 0 32px'}}>Entrez votre email pour recevoir votre recommandation personnalisée. Un lien sécurisé vous sera envoyé pour y accéder.</p>
         <input ref={inputRef} type="email" placeholder="votre@email.com" value={email}
           onChange={e=>{setEmail(e.target.value);setEmailValid(validateEmail(e.target.value));}}
-          onKeyDown={e=>e.key==="Enter"&&emailValid&&handleSubmit()}
-          style={{width:"100%",padding:"15px 18px",background:G.white,border:`1.5px solid ${emailValid?G.green:G.greenBorder}`,borderRadius:10,color:G.text,fontSize:15,fontWeight:400,outline:"none",boxSizing:"border-box",marginBottom:14,transition:"border-color 0.2s"}}
+          onKeyDown={e=>e.key==='Enter'&&emailValid&&handleSubmit()}
+          style={{width:'100%',padding:'15px 18px',background:G.white,border:`1.5px solid ${emailValid?G.green:G.greenBorder}`,borderRadius:10,color:G.text,fontSize:15,outline:'none',boxSizing:'border-box',marginBottom:14,transition:'border-color 0.2s'}}
         />
-        <Btn onClick={handleSubmit} disabled={!emailValid||loading} full>
-          {loading?"Envoi en cours...":"Recevoir mon analyse →"}
-        </Btn>
-        <p style={{color:G.textLight,fontSize:11,fontWeight:400,textAlign:"center",marginTop:16}}>Vos données ne sont pas revendues. Un seul email de notre part.</p>
+        <button onClick={handleSubmit} disabled={!emailValid||loading}
+          style={{width:'100%',padding:'17px 32px',background:emailValid?G.green:'#e0e0e0',color:emailValid?'#fff':'#aaa',border:'none',borderRadius:10,fontSize:15,fontWeight:700,cursor:emailValid?'pointer':'not-allowed',letterSpacing:'0.02em'}}>
+          {loading?'Envoi en cours...':'Recevoir mon analyse →'}
+        </button>
+        <p style={{color:G.textLight,fontSize:11,textAlign:'center',marginTop:16}}>Vos données ne sont pas revendues. Un seul email de notre part.</p>
       </div>
     </div>
   );
 
-  // ── CONFIRMATION ──
+  // CONFIRMATION
   if(step===total+2)return(
-    <div style={{minHeight:"100vh",background:G.white}}>
+    <div style={{minHeight:'100vh',background:G.white}}>
       <Header/>
-      <div style={{maxWidth:480,margin:"0 auto",padding:"60px 24px",textAlign:"center"}}>
-        <div style={{width:72,height:72,background:G.greenBg,border:`1.5px solid ${G.greenBorder}`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 24px"}}>📬</div>
-        <h1 style={{color:G.text,fontSize:24,fontWeight:600,margin:"0 0 14px",lineHeight:1.3}}>Vérifiez votre email.</h1>
-        <p style={{color:G.textMuted,fontSize:14,fontWeight:400,lineHeight:1.75,margin:"0 0 32px"}}>
-          Un email vient d'être envoyé à <strong style={{color:G.text,fontWeight:600}}>{email}</strong>.<br/>
-          Cliquez sur le lien pour accéder à votre recommandation complète.
-        </p>
-        <div style={{background:G.greenBg,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:"20px 24px",marginBottom:28,textAlign:"left"}}>
-          <div style={{color:G.greenDark,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>Pensez à vérifier</div>
+      <div style={{maxWidth:480,margin:'0 auto',padding:'60px 24px',textAlign:'center'}}>
+        <div style={{width:72,height:72,background:G.greenBg,border:`1.5px solid ${G.greenBorder}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,margin:'0 auto 24px'}}>📬</div>
+        <h1 style={{color:G.text,fontSize:24,fontWeight:600,margin:'0 0 14px',lineHeight:1.3}}>Vérifiez votre email.</h1>
+        <p style={{color:G.textMuted,fontSize:14,lineHeight:1.75,margin:'0 0 32px'}}>Un email vient d'être envoyé à <strong style={{color:G.text}}>{email}</strong>.<br/>Cliquez sur le lien pour accéder à votre recommandation complète.</p>
+        <div style={{background:G.greenBg,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:'20px 24px',marginBottom:28,textAlign:'left'}}>
+          <div style={{color:G.greenDark,fontSize:11,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:12}}>Pensez à vérifier</div>
           {[["📥","Votre boîte de réception principale"],["📁","Vos spams / courriers indésirables"],["🔄","Patienter 1 à 2 minutes si nécessaire"]].map(([icon,txt])=>(
-            <div key={txt} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-              <span style={{fontSize:16}}>{icon}</span>
-              <span style={{color:G.textMuted,fontSize:13,fontWeight:400}}>{txt}</span>
+            <div key={txt} style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+              <span style={{fontSize:16}}>{icon}</span><span style={{color:G.textMuted,fontSize:13}}>{txt}</span>
             </div>
           ))}
         </div>
-        <div style={{background:G.white,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:"20px",marginBottom:20}}>
-          <p style={{color:G.textMuted,fontSize:13,fontWeight:400,margin:"0 0 14px"}}>Vous préférez en discuter directement ?</p>
+        <div style={{background:G.white,border:`1px solid ${G.greenBorder}`,borderRadius:12,padding:'20px',marginBottom:20}}>
+          <p style={{color:G.textMuted,fontSize:13,margin:'0 0 14px'}}>Vous préférez en discuter directement ?</p>
           <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
-            style={{display:"inline-flex",alignItems:"center",gap:8,padding:"12px 22px",background:"#25d366",color:G.white,borderRadius:8,textDecoration:"none",fontWeight:600,fontSize:13,fontFamily:"'Montserrat',sans-serif"}}>
+            style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:'#25d366',color:'#fff',borderRadius:8,textDecoration:'none',fontWeight:600,fontSize:13}}>
             <img src={WA_SRC} alt="WhatsApp" style={{width:20,height:20,borderRadius:4}}/>
             Contacter Olivier
           </a>
         </div>
-        <button onClick={reset} style={{background:"none",border:"none",color:G.textLight,cursor:"pointer",fontSize:12,fontWeight:400}}>↺ Recommencer l'analyse</button>
+        <button onClick={reset} style={{background:'none',border:'none',color:G.textLight,cursor:'pointer',fontSize:12}}>↺ Recommencer l'analyse</button>
       </div>
     </div>
   );
-
   return null;
 }
 
-function App(){
-  const urlParams=new URLSearchParams(window.location.search);
-  const tokenParam=urlParams.get("token");
-  if(tokenParam)return <ResultPage token={tokenParam}/>;
-  return <Simulateur/>;
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
